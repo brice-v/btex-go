@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/gdamore/tcell"
@@ -40,19 +39,21 @@ func main() {
 	// 		}
 	// 	}
 	// }()
-	for {
+	for i := 0; i < 10; i++ {
 		ev := s.PollEvent()
 		switch ev := ev.(type) {
 		case *tcell.EventKey:
 			switch ev.Key() {
-			case tcell.KeyCtrlC:
+			case tcell.KeyCtrlC, tcell.KeyCtrlQ:
 				goto done
 			}
 			k := ev.Rune()
-			fmt.Println(k)
+			print(k)
+
 		}
 	}
 done:
+	//must call the fini method before the program exits (and or errors) otherwise terminal gets messed up
 	s.Fini()
 	os.Exit(0)
 }
