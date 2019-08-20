@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/gdamore/tcell"
 )
@@ -20,7 +21,6 @@ func main() {
 		Background(tcell.ColorWhite))
 	s.Clear()
 	s.Init()
-	defer s.Fini()
 
 	// quit := make(chan struct{})
 	// go func() {
@@ -44,9 +44,15 @@ func main() {
 		ev := s.PollEvent()
 		switch ev := ev.(type) {
 		case *tcell.EventKey:
+			switch ev.Key() {
+			case tcell.KeyCtrlC:
+				goto done
+			}
 			k := ev.Rune()
 			fmt.Println(k)
 		}
 	}
-
+done:
+	s.Fini()
+	os.Exit(0)
 }
