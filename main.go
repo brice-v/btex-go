@@ -48,6 +48,8 @@ func (E *editor) ReadKey() rune {
 			os.Exit(0)
 		}
 		k = ev.Rune()
+		// as soon as typing begins, get rid of the welcome screen
+		E.displayWelcome = false
 	default:
 		return k
 	}
@@ -59,6 +61,7 @@ func (E *editor) RefreshScreen() {
 	E.s.Clear()
 	E.initRows()
 	E.s.ShowCursor(E.cur.x, E.cur.y)
+	E.s.Show()
 }
 
 func (E *editor) initRows() {
@@ -71,7 +74,6 @@ func (E *editor) initRows() {
 		textToDraw := fmt.Sprintf("btex editor -- version %s", BTEX_VERSION)
 		drawString(E.s, w/3, h/4, textToDraw)
 		drawString(E.s, (w/3)-1, (h/4)+1, "Press Ctrl+C or Ctrl+Q to Quit")
-		E.displayWelcome = false
 	}
 
 }
@@ -94,7 +96,7 @@ func initScreen() tcell.Screen {
 
 func newEditor() *editor {
 	E := new(editor)
-	E.cur.x, E.cur.y = 0, 1
+	E.cur.x, E.cur.y = 1, 0
 	E.s = initScreen()
 	E.displayWelcome = true
 	return E
@@ -105,11 +107,8 @@ func main() {
 
 	for {
 		e.RefreshScreen()
-
-		e.s.Show()
 		c := e.ReadKey()
 		print(string(c))
-
 	}
 
 }
