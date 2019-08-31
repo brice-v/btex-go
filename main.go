@@ -26,17 +26,19 @@ func editorReadKey(s tcell.Screen) rune {
 
 func editorRefreshScreen(s tcell.Screen) {
 	s.Clear()
+	editorDrawRows(s)
+	s.ShowCursor(1, 0)
 }
 
 func editorDrawRows(s tcell.Screen) {
-	for y := 0; y < 24; y++ {
+	_, h := s.Size()
+	for y := 0; y < h; y++ {
 		s.SetContent(0, y, '~', nil, tcell.StyleDefault)
 	}
 
 }
 
-func main() {
-
+func initEditor() tcell.Screen {
 	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
 	s, e := tcell.NewScreen()
 	if e != nil {
@@ -49,11 +51,15 @@ func main() {
 		Background(tcell.ColorWhite))
 	s.Clear()
 	s.Init()
+	return s
+}
 
-	for i := 0; i < 100; i++ {
+func main() {
+	s := initEditor()
+
+	for {
 		editorRefreshScreen(s)
-		editorDrawRows(s)
-		s.ShowCursor(1, 0)
+
 		s.Show()
 		c := editorReadKey(s)
 		print(string(c))
