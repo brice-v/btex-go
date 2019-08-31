@@ -39,7 +39,7 @@ func main() {
 	// 		}
 	// 	}
 	// }()
-	for i := 0; i < 10; i++ {
+	for {
 		ev := s.PollEvent()
 		switch ev := ev.(type) {
 		case *tcell.EventKey:
@@ -47,7 +47,7 @@ func main() {
 			case tcell.KeyCtrlC, tcell.KeyCtrlQ:
 				goto done
 			}
-			k := ev.Rune()
+			k := string(ev.Rune())
 			print(k)
 
 		}
