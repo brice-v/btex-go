@@ -1,9 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/gdamore/tcell"
+)
+
+const (
+	BTEX_VERSION = "0.0.1"
 )
 
 func editorReadKey(s tcell.Screen) rune {
@@ -31,11 +36,26 @@ func editorRefreshScreen(s tcell.Screen) {
 	s.ShowCursor(1, 0)
 }
 
+// drawString sets the content at the starting location given by x and y
+func drawString(s tcell.Screen, x int, y int, stringToDraw string) {
+	bs := []rune(stringToDraw)
+	for i, v := range bs {
+		s.SetContent(x+i, y, v, nil, tcell.StyleDefault)
+	}
+	s.Show()
+}
+
 func editorDrawRows(s tcell.Screen) {
-	_, h := s.Size()
+	w, h := s.Size()
 	for y := 0; y < h; y++ {
 		s.SetContent(0, y, '~', nil, tcell.StyleDefault)
 	}
+	// Draw Welcome Screen
+	func(s tcell.Screen) {
+		textToDraw := fmt.Sprintf("btex editor -- version %s", BTEX_VERSION)
+		drawString(s, w/3, h/4, textToDraw)
+		drawString(s, (w/3)-1, (h/4)+1, "Press Ctrl+C or Ctrl+Q to Quit")
+	}(s)
 
 }
 
