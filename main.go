@@ -62,6 +62,23 @@ type editor struct {
 	displayWelcome bool
 }
 
+func (E *editor) displayCursor() {
+	w, h := E.s.Size()
+	if E.cur.x < 0 {
+		E.cur.x = 0
+	}
+	if E.cur.y < 0 {
+		E.cur.y = 0
+	}
+	if E.cur.x > w {
+		E.cur.x = w - 1
+	}
+	if E.cur.y > h {
+		E.cur.y = h - 1
+	}
+	E.s.ShowCursor(E.cur.x, E.cur.y)
+}
+
 func (E *editor) ReadKey() rune {
 	var k rune
 
@@ -72,6 +89,14 @@ func (E *editor) ReadKey() rune {
 		case tcell.KeyCtrlC, tcell.KeyCtrlQ:
 			E.s.Fini()
 			os.Exit(0)
+		case tcell.KeyUp:
+			E.cur.move(UP)
+		case tcell.KeyLeft:
+			E.cur.move(LEFT)
+		case tcell.KeyRight:
+			E.cur.move(RIGHT)
+		case tcell.KeyDown:
+			E.cur.move(DOWN)
 		}
 		k = ev.Rune()
 		switch k {
@@ -96,7 +121,7 @@ func (E *editor) RefreshScreen() {
 	E.s.HideCursor()
 	E.s.Clear()
 	E.initRows()
-	E.s.ShowCursor(E.cur.x, E.cur.y)
+	E.displayCursor()
 	E.s.Show()
 }
 
