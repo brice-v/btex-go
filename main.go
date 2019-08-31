@@ -21,13 +21,39 @@ func drawString(s tcell.Screen, x int, y int, stringToDraw string) {
 }
 
 //
-// EDITOR FUNCTIONS
+// CURSOR FUNCTIONS
 //
+
+type direction int
+
+const (
+	UP direction = iota
+	DOWN
+	LEFT
+	RIGHT
+)
 
 type cursor struct {
 	x int
 	y int
 }
+
+func (c *cursor) move(d direction) {
+	switch d {
+	case UP:
+		c.y--
+	case DOWN:
+		c.y++
+	case LEFT:
+		c.x--
+	case RIGHT:
+		c.x++
+	}
+}
+
+//
+// EDITOR FUNCTIONS
+//
 
 type editor struct {
 	s   tcell.Screen
@@ -48,6 +74,16 @@ func (E *editor) ReadKey() rune {
 			os.Exit(0)
 		}
 		k = ev.Rune()
+		switch k {
+		case 'w':
+			E.cur.move(UP)
+		case 'a':
+			E.cur.move(LEFT)
+		case 'd':
+			E.cur.move(RIGHT)
+		case 's':
+			E.cur.move(DOWN)
+		}
 		// as soon as typing begins, get rid of the welcome screen
 		E.displayWelcome = false
 	default:
