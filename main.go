@@ -79,6 +79,17 @@ func (E *editor) displayCursor() {
 	E.s.ShowCursor(E.cur.x, E.cur.y)
 }
 
+func (E *editor) deleteUnder() {
+
+	E.s.SetContent(E.cur.x, E.cur.y, 'A', nil, tcell.StyleDefault)
+	E.s.Show()
+}
+
+func (E *editor) drawRune(r rune) {
+	E.cur.move(RIGHT)
+	E.s.SetContent(E.cur.x, E.cur.y, r, nil, tcell.StyleDefault)
+}
+
 func (E *editor) ReadKey() rune {
 	var k rune
 
@@ -97,17 +108,19 @@ func (E *editor) ReadKey() rune {
 			E.cur.move(RIGHT)
 		case tcell.KeyDown:
 			E.cur.move(DOWN)
-		}
-		k = ev.Rune()
-		switch k {
-		case 'w':
-			E.cur.move(UP)
-		case 'a':
+		case tcell.KeyBackspace2, tcell.KeyBackspace:
 			E.cur.move(LEFT)
-		case 'd':
+			E.deleteUnder()
+		case tcell.KeyDelete:
 			E.cur.move(RIGHT)
-		case 's':
+			E.deleteUnder()
+		case tcell.KeyEnter:
 			E.cur.move(DOWN)
+			E.cur.x = 1
+			E.s.Show()
+		default:
+			k = ev.Rune()
+			E.drawRune(k)
 		}
 		// as soon as typing begins, get rid of the welcome screen
 		E.displayWelcome = false
