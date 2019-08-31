@@ -25,6 +25,7 @@ func editorReadKey(s tcell.Screen) rune {
 }
 
 func editorRefreshScreen(s tcell.Screen) {
+	s.HideCursor()
 	s.Clear()
 	editorDrawRows(s)
 	s.ShowCursor(1, 0)
