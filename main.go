@@ -26,6 +26,13 @@ func editorRefreshScreen(s tcell.Screen) {
 	s.Clear()
 }
 
+func editorDrawRows(s tcell.Screen) {
+	for y := 0; y < 24; y++ {
+		s.SetContent(0, y, '~', nil, tcell.StyleDefault)
+	}
+
+}
+
 func main() {
 
 	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
@@ -41,26 +48,8 @@ func main() {
 	s.Clear()
 	s.Init()
 
-	// quit := make(chan struct{})
-	// go func() {
-	// 	for {
-	// 		ev := s.PollEvent()
-	// 		switch ev := ev.(type) {
-	// 		case *tcell.EventKey:
-	// 			switch ev.Key() {
-	// 			case tcell.KeyEscape, tcell.KeyCtrlQ, tcell.KeyCtrlC:
-	// 				close(quit)
-	// 				return
-	// 			default:
-	// 				fmt.Println(ev.Key())
-	// 			}
-	// 		case *tcell.EventResize:
-	// 			s.Sync()
-	// 		}
-	// 	}
-	// }()
-	for {
-		editorRefreshScreen()
+	for i := 0; i < 100; i++ {
+		editorDrawRows(s)
 		c := editorReadKey(s)
 		print(string(c))
 	}
