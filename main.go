@@ -22,6 +22,10 @@ func editorReadKey(s tcell.Screen) rune {
 	return k
 }
 
+func editorRefreshScreen(s tcell.Screen) {
+	s.Clear()
+}
+
 func main() {
 
 	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
@@ -56,6 +60,7 @@ func main() {
 	// 	}
 	// }()
 	for {
+		editorRefreshScreen()
 		c := editorReadKey(s)
 		print(string(c))
 	}
