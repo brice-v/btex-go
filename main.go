@@ -11,31 +11,6 @@ const (
 	BTEX_VERSION = "0.0.1"
 )
 
-func editorReadKey(s tcell.Screen) rune {
-	var k rune
-
-	ev := s.PollEvent()
-	switch ev := ev.(type) {
-	case *tcell.EventKey:
-		switch ev.Key() {
-		case tcell.KeyCtrlC, tcell.KeyCtrlQ:
-			s.Fini()
-			os.Exit(0)
-		}
-		k = ev.Rune()
-	default:
-		return k
-	}
-	return k
-}
-
-func editorRefreshScreen(s tcell.Screen) {
-	s.HideCursor()
-	s.Clear()
-	editorDrawRows(s)
-	s.ShowCursor(1, 0)
-}
-
 // drawString sets the content at the starting location given by x and y
 func drawString(s tcell.Screen, x int, y int, stringToDraw string) {
 	bs := []rune(stringToDraw)
@@ -45,21 +20,63 @@ func drawString(s tcell.Screen, x int, y int, stringToDraw string) {
 	s.Show()
 }
 
-func editorDrawRows(s tcell.Screen) {
-	w, h := s.Size()
+//
+// EDITOR FUNCTIONS
+//
+
+type cursor struct {
+	x int
+	y int
+}
+
+type editor struct {
+	s   tcell.Screen
+	cur cursor
+
+	displayWelcome bool
+}
+
+func (E *editor) ReadKey() rune {
+	var k rune
+
+	ev := E.s.PollEvent()
+	switch ev := ev.(type) {
+	case *tcell.EventKey:
+		switch ev.Key() {
+		case tcell.KeyCtrlC, tcell.KeyCtrlQ:
+			E.s.Fini()
+			os.Exit(0)
+		}
+		k = ev.Rune()
+	default:
+		return k
+	}
+	return k
+}
+
+func (E *editor) RefreshScreen() {
+	E.s.HideCursor()
+	E.s.Clear()
+	E.initRows()
+	E.s.ShowCursor(E.cur.x, E.cur.y)
+}
+
+func (E *editor) initRows() {
+	w, h := E.s.Size()
 	for y := 0; y < h; y++ {
-		s.SetContent(0, y, '~', nil, tcell.StyleDefault)
+		E.s.SetContent(0, y, '~', nil, tcell.StyleDefault)
 	}
 	// Draw Welcome Screen
-	func(s tcell.Screen) {
+	if E.displayWelcome {
 		textToDraw := fmt.Sprintf("btex editor -- version %s", BTEX_VERSION)
-		drawString(s, w/3, h/4, textToDraw)
-		drawString(s, (w/3)-1, (h/4)+1, "Press Ctrl+C or Ctrl+Q to Quit")
-	}(s)
+		drawString(E.s, w/3, h/4, textToDraw)
+		drawString(E.s, (w/3)-1, (h/4)+1, "Press Ctrl+C or Ctrl+Q to Quit")
+		E.displayWelcome = false
+	}
 
 }
 
-func initEditor() tcell.Screen {
+func initScreen() tcell.Screen {
 	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
 	s, e := tcell.NewScreen()
 	if e != nil {
@@ -75,14 +92,22 @@ func initEditor() tcell.Screen {
 	return s
 }
 
+func newEditor() *editor {
+	E := new(editor)
+	E.cur.x, E.cur.y = 0, 1
+	E.s = initScreen()
+	E.displayWelcome = true
+	return E
+}
+
 func main() {
-	s := initEditor()
+	e := newEditor()
 
 	for {
-		editorRefreshScreen(s)
+		e.RefreshScreen()
 
-		s.Show()
-		c := editorReadKey(s)
+		e.s.Show()
+		c := e.ReadKey()
 		print(string(c))
 
 	}
