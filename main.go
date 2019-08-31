@@ -8,7 +8,9 @@ import (
 )
 
 const (
-	BTEX_VERSION = "0.0.1"
+	BTEX_VERSION  = "0.0.1"
+	NEWLINE_CHAR  = '\n'
+	LEFTSIDE_CHAR = '~'
 )
 
 // drawString sets the content at the starting location given by x and y
@@ -55,15 +57,24 @@ func (c *cursor) move(d direction) {
 // EDITOR FUNCTIONS
 //
 
+type editorRow struct {
+	size  int
+	chars []rune
+}
+
 type editor struct {
 	s   tcell.Screen
 	cur cursor
 
 	displayWelcome bool
+
+	row     editorRow
+	numrows int
 }
 
 func (E *editor) displayCursor() {
 	w, h := E.s.Size()
+
 	if E.cur.x < 1 {
 		E.cur.x = 1
 	}
@@ -80,7 +91,6 @@ func (E *editor) displayCursor() {
 }
 
 func (E *editor) deleteUnder() {
-
 	E.s.SetContent(E.cur.x, E.cur.y, 'A', nil, tcell.StyleDefault)
 	E.s.Show()
 }
@@ -107,14 +117,18 @@ func (E *editor) ReadKey() rune {
 		case tcell.KeyRight:
 			E.cur.move(RIGHT)
 		case tcell.KeyDown:
+			// to handle directional issues with text i might just allow the user to move anywhere and when they
+			// start typing bring them back to the bottom of the text or something like that
+			// still need to look in using ropes for string storage
 			E.cur.move(DOWN)
 		case tcell.KeyBackspace2, tcell.KeyBackspace:
 			E.cur.move(LEFT)
 			E.deleteUnder()
 		case tcell.KeyDelete:
-			E.cur.move(RIGHT)
+			// TODO need to move all text left when something is deleted
 			E.deleteUnder()
 		case tcell.KeyEnter:
+			E.drawRune(NEWLINE_CHAR)
 			E.cur.move(DOWN)
 			E.cur.x = 1
 			E.s.Show()
@@ -141,7 +155,7 @@ func (E *editor) RefreshScreen() {
 func (E *editor) initRows() {
 	w, h := E.s.Size()
 	for y := 0; y < h; y++ {
-		E.s.SetContent(0, y, '~', nil, tcell.StyleDefault)
+		E.s.SetContent(0, y, LEFTSIDE_CHAR, nil, tcell.StyleDefault)
 	}
 	// Draw Welcome Screen
 	if E.displayWelcome {
@@ -172,6 +186,11 @@ func newEditor() *editor {
 	E := new(editor)
 	E.cur.x, E.cur.y = 1, 0
 	E.s = initScreen()
+
+	E.row.chars = []rune("")
+	E.row.size = 0
+	E.numrows = 0
+
 	E.displayWelcome = true
 	return E
 }
