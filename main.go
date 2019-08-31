@@ -18,6 +18,8 @@ func editorReadKey(s tcell.Screen) rune {
 			os.Exit(0)
 		}
 		k = ev.Rune()
+	default:
+		return k
 	}
 	return k
 }
@@ -49,9 +51,13 @@ func main() {
 	s.Init()
 
 	for i := 0; i < 100; i++ {
+		editorRefreshScreen(s)
 		editorDrawRows(s)
+		s.ShowCursor(1, 0)
+		s.Show()
 		c := editorReadKey(s)
 		print(string(c))
+
 	}
 
 }
