@@ -64,8 +64,8 @@ type editor struct {
 
 func (E *editor) displayCursor() {
 	w, h := E.s.Size()
-	if E.cur.x < 0 {
-		E.cur.x = 0
+	if E.cur.x < 1 {
+		E.cur.x = 1
 	}
 	if E.cur.y < 0 {
 		E.cur.y = 0
