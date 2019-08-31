@@ -6,6 +6,22 @@ import (
 	"github.com/gdamore/tcell"
 )
 
+func editorReadKey(s tcell.Screen) rune {
+	var k rune
+
+	ev := s.PollEvent()
+	switch ev := ev.(type) {
+	case *tcell.EventKey:
+		switch ev.Key() {
+		case tcell.KeyCtrlC, tcell.KeyCtrlQ:
+			s.Fini()
+			os.Exit(0)
+		}
+		k = ev.Rune()
+	}
+	return k
+}
+
 func main() {
 
 	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
@@ -40,20 +56,8 @@ func main() {
 	// 	}
 	// }()
 	for {
-		ev := s.PollEvent()
-		switch ev := ev.(type) {
-		case *tcell.EventKey:
-			switch ev.Key() {
-			case tcell.KeyCtrlC, tcell.KeyCtrlQ:
-				goto done
-			}
-			k := string(ev.Rune())
-			print(k)
-
-		}
+		c := editorReadKey(s)
+		print(string(c))
 	}
-done:
-	//must call the fini method before the program exits (and or errors) otherwise terminal gets messed up
-	s.Fini()
-	os.Exit(0)
+
 }
