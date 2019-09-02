@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/gdamore/tcell"
@@ -45,17 +46,26 @@ func (E *editor) drawEditorChars(xPos int, yPos int) {
 // FILE / IO
 //
 
-func (E *editor) fileOpen() {
-	open_file := `
-"HelloWorld"!
-Sometimes there is more words
+func (E *editor) openFile(f string) {
+	data, err := ioutil.ReadFile(f)
+	if err != nil {
+		// TODO Handle failing to open file
+		// need to figure out how i will display that to the user
+		// or make a generic die function
+		return
+	}
+	E.row.size = len(data)
+	E.row.chars = []rune(string(data))
 
-
-more stuff down here`
-	E.row.size = len(open_file)
-	E.row.chars = []rune(open_file)
-
-	E.numrows = 6
+	E.numrows = func() (val int) {
+		val = 1
+		for _, v := range E.row.chars {
+			if v == '\n' {
+				val++
+			}
+		}
+		return
+	}()
 }
 
 //
@@ -228,7 +238,19 @@ func newEditor() *editor {
 	E.cur.x, E.cur.y = 1, 0
 	E.s = initScreen()
 
-	E.fileOpen()
+	// for now only opening file when exactly the 1st argument on the command line
+	if len(os.Args) == 2 {
+		if _, err := os.Stat(os.Args[1]); err == nil {
+			E.openFile(os.Args[1])
+		} else if os.IsNotExist(err) {
+			// create then open file
+			// E.openFile(os.Args[1])
+			// for now just do nothing and continue
+		} else {
+			// something crazier happened?
+			panic(err)
+		}
+	}
 
 	E.displayWelcome = true
 	return E
