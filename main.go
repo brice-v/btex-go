@@ -195,7 +195,8 @@ func (E *editor) DrawRows() {
 	w, h := E.s.Size()
 	for y := 0; y < h; y++ {
 		E.s.SetContent(0, y, LEFTSIDE_CHAR, nil, tcell.StyleDefault)
-		E.drawEditorChars(E.cur.x, E.cur.y)
+		// just start at the origin
+		E.drawEditorChars(1, 0)
 	}
 	// Draw Welcome Screen
 	if E.displayWelcome && E.numrows < 1 {
