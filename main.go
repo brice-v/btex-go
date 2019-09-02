@@ -176,6 +176,7 @@ func (E *editor) ProcessKey() rune {
 			// TODO need to move all text left when something is deleted
 			E.deleteUnder()
 		case tcell.KeyEnter:
+			// TODO come back to this because i dont know what this will need to do
 			E.drawRune(NEWLINE_CHAR)
 			E.cur.move(DOWN)
 			E.cur.x = 1
@@ -201,6 +202,8 @@ func (E *editor) RefreshScreen() {
 	E.s.Show()
 }
 
+// DrawRows draws all the rows onto the screen from the E.row.chars
+// this is going to change soon
 func (E *editor) DrawRows() {
 	w, h := E.s.Size()
 	for y := 0; y < h; y++ {
