@@ -137,13 +137,13 @@ func (E *editor) displayCursor() {
 }
 
 func (E *editor) deleteUnder() {
-	E.s.SetContent(E.cur.x, E.cur.y, 'A', nil, tcell.StyleDefault)
+	E.s.SetContent(E.cur.x, E.cur.y, ' ', nil, tcell.StyleDefault)
 	E.s.Show()
 }
 
 func (E *editor) drawRune(r rune) {
-	E.cur.move(RIGHT)
 	E.s.SetContent(E.cur.x, E.cur.y, r, nil, tcell.StyleDefault)
+	E.cur.move(RIGHT)
 }
 
 // ProcessKey polls the key pressed and responds with the correct event
