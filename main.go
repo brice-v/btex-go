@@ -264,8 +264,8 @@ func main() {
 
 	for {
 		e.RefreshScreen()
-		c := e.ProcessKey()
-		print(string(c))
+		// this returns the rune but we may not need it
+		_ = e.ProcessKey()
 	}
 
 }
