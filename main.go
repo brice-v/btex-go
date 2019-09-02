@@ -195,7 +195,7 @@ func (E *editor) ProcessKey() rune {
 // RefreshScreen calls all the necessary functions between terminal screen refreshes
 func (E *editor) RefreshScreen() {
 	E.s.HideCursor()
-	E.s.Clear()
+	// E.s.Clear()
 	E.DrawRows()
 	E.displayCursor()
 	E.s.Show()
