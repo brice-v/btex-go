@@ -22,6 +22,25 @@ func drawString(s tcell.Screen, x int, y int, stringToDraw string) {
 	s.Show()
 }
 
+// drawString sets the content at the starting location given by x and y
+func (E *editor) drawEditorChars(xPos int, yPos int) {
+	curCharCount := 0
+	for i, v := range E.row.chars {
+		if v == '\n' || v == '\r' {
+			if i > 1 && E.row.chars[i-1] == '\r' {
+				continue
+			}
+			curCharCount = 0
+			yPos++
+			E.s.SetContent(1, yPos, v, nil, tcell.StyleDefault)
+		} else {
+			curCharCount++
+			E.s.SetContent(xPos+(curCharCount), yPos, v, nil, tcell.StyleDefault)
+		}
+	}
+	E.s.Show()
+}
+
 //
 // FILE / IO
 //
@@ -167,18 +186,19 @@ func (E *editor) ProcessKey() rune {
 func (E *editor) RefreshScreen() {
 	E.s.HideCursor()
 	E.s.Clear()
-	E.initRows()
+	E.DrawRows()
 	E.displayCursor()
 	E.s.Show()
 }
 
-func (E *editor) initRows() {
+func (E *editor) DrawRows() {
 	w, h := E.s.Size()
 	for y := 0; y < h; y++ {
 		E.s.SetContent(0, y, LEFTSIDE_CHAR, nil, tcell.StyleDefault)
+		E.drawEditorChars(E.cur.x, E.cur.y)
 	}
 	// Draw Welcome Screen
-	if E.displayWelcome {
+	if E.displayWelcome && E.numrows < 1 {
 		textToDraw := fmt.Sprintf("btex editor -- version %s", BTEX_VERSION)
 		drawString(E.s, w/3, h/4, textToDraw)
 		drawString(E.s, (w/3)-1, (h/4)+1, "Press Ctrl+C or Ctrl+Q to Quit")
