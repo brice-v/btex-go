@@ -23,6 +23,23 @@ func drawString(s tcell.Screen, x int, y int, stringToDraw string) {
 }
 
 //
+// FILE / IO
+//
+
+func (E *editor) fileOpen() {
+	open_file := `
+"HelloWorld"!
+Sometimes there is more words
+
+
+more stuff down here`
+	E.row.size = len(open_file)
+	E.row.chars = []rune(open_file)
+
+	E.numrows = 6
+}
+
+//
 // CURSOR FUNCTIONS
 //
 
@@ -100,7 +117,9 @@ func (E *editor) drawRune(r rune) {
 	E.s.SetContent(E.cur.x, E.cur.y, r, nil, tcell.StyleDefault)
 }
 
-func (E *editor) ReadKey() rune {
+// ProcessKey polls the key pressed and responds with the correct event
+// it will return the key if it is not a command key
+func (E *editor) ProcessKey() rune {
 	var k rune
 
 	ev := E.s.PollEvent()
@@ -144,6 +163,7 @@ func (E *editor) ReadKey() rune {
 	return k
 }
 
+// RefreshScreen calls all the necessary functions between terminal screen refreshes
 func (E *editor) RefreshScreen() {
 	E.s.HideCursor()
 	E.s.Clear()
@@ -187,9 +207,7 @@ func newEditor() *editor {
 	E.cur.x, E.cur.y = 1, 0
 	E.s = initScreen()
 
-	E.row.chars = []rune("")
-	E.row.size = 0
-	E.numrows = 0
+	E.fileOpen()
 
 	E.displayWelcome = true
 	return E
@@ -200,7 +218,7 @@ func main() {
 
 	for {
 		e.RefreshScreen()
-		c := e.ReadKey()
+		c := e.ProcessKey()
 		print(string(c))
 	}
 
