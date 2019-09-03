@@ -1,4 +1,4 @@
-package peace
+package main
 
 // an attempt at making a piecetable/piecemap in go but right now im using list(doubly) from container/list
 // and honestly a bunch of other random stuff but im ready to start recording my eventual implementation
@@ -16,10 +16,13 @@ import (
 type NodeType int
 
 const (
+	//Added Buffer NodeType descriptor
 	Added NodeType = iota
+	//Original Buffer NodeType descriptor
 	Original
 )
 
+// PieceTable is currently 2 buffers but will be modified in the future
 type PieceTable struct {
 	original []byte
 	added    []byte
@@ -37,6 +40,7 @@ func (n *Node) String() (result string) {
 	return
 }
 
+// Node is the element in the list that contains some metadata for the contents and the operation
 type Node struct {
 	typ         NodeType
 	start       int
@@ -49,6 +53,7 @@ func (PT *PieceTable) newNode(typ NodeType, start, length int, visible bool, lin
 	PT.nodes.PushBack(&Node{typ: typ, start: start, length: length, visible: visible, lineOffsets: lineOffsets})
 }
 
+//AppendBytes allows append only nodes to be added to the piece table
 func (PT *PieceTable) AppendBytes(data []byte) {
 	dataLen := len(data)
 	dataStart := len(PT.added)
@@ -59,10 +64,12 @@ func (PT *PieceTable) AppendBytes(data []byte) {
 	PT.newNode(Added, dataStart, dataLen, true, los)
 }
 
-func (PT *PieceTable) ChangeBytesAt(x, x1 int, data []byte) {
+//ChangeBytesAt will allow you to "modify" the view on the buffer
+func (PT *PieceTable) ChangeBytesAt(start, end int, data []byte) {
 
 }
 
+// Display currently displays the []bytes to the terminal ( there will be read functions instead)
 func (PT *PieceTable) Display() {
 	for e := PT.nodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*Node)
@@ -94,6 +101,8 @@ func getLineOffsets(buf []byte) []int {
 	return bucket
 }
 
+// NewPT will eventually return a piecetable/map and will probably have a separate
+// new function for the optional buffer (this would be starting a new buffer for instance)
 func NewPT(optBuf []byte) *PieceTable {
 	if optBuf != nil && len(optBuf) < (32*1024) {
 		pt := &PieceTable{original: optBuf, added: []byte(""), nodes: list.New()}
