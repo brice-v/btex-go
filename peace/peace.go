@@ -64,11 +64,6 @@ func (PT *PieceTable) AppendBytes(data []byte) {
 	PT.newNode(Added, dataStart, dataLen, true, los)
 }
 
-//ChangeBytesAt will allow you to "modify" the view on the buffer
-func (PT *PieceTable) ChangeBytesAt(start, end int, data []byte) {
-
-}
-
 // Display currently displays the []bytes to the terminal ( there will be read functions instead)
 func (PT *PieceTable) Display() {
 	for e := PT.nodes.Front(); e != nil; e = e.Next() {
@@ -177,5 +172,6 @@ func main() {
 	x.AppendBytes([]byte("\n\n"))
 	x.AppendBytes([]byte("\tMore Text Over Here"))
 	x.Display()
+	x.DeleteBytesAt(1, 10, []byte("faslj"))
 
 }
