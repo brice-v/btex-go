@@ -27,8 +27,9 @@ func drawString(s tcell.Screen, x int, y int, stringToDraw string) {
 func (E *editor) drawEditorChars(xPos int, yPos int, leftChar rune) {
 	// w, h := E.s.Size()
 	for rowindx := 0; rowindx < E.numrows; rowindx++ {
-		// for charindx := 0; charindx < E.rows[rowindx].size && charindx < w; charindx++ {
-		// 	E.s.SetContent(charindx+1, rowindx-10, E.rows[rowindx].chars[charindx], nil, tcell.StyleDefault)
+		for charindx := 0; charindx < E.rows[rowindx].length; charindx++ {
+			E.s.SetContent(charindx+1, rowindx, E.rows[rowindx].chars[charindx], nil, tcell.StyleDefault)
+		}
 		E.s.SetContent(0, rowindx, LEFTSIDE_CHAR, nil, tcell.StyleDefault)
 	}
 
