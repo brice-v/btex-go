@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/gdamore/tcell"
@@ -46,8 +48,57 @@ func (E *editor) drawEditorChars(xPos int, yPos int) {
 // FILE / IO
 //
 
+func openAndReadFile(f string) ([]byte, error) {
+	var fd *os.File
+
+	fd, err := os.Open(f)
+	// eventually include this as part of a shutdown
+	defer fd.Close()
+	if err != nil {
+		// TODO Handle failing to open file
+		// need to figure out how i will display that to the user
+		// or make a generic die function
+		return nil, err
+	}
+	fi, err := fd.Stat()
+	if err != nil {
+		return nil, err
+
+	}
+	//1 MB?
+	if fi.Size() > (1 * 1024 * 1024) {
+		//do a buffered read
+		buf := make([]byte, 32*1024) // define your buffer size here.
+
+		for {
+			n, err := fd.Read(buf)
+
+			if n > 0 {
+				return buf[:n], nil // your read buffer.
+			}
+
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Printf("read %d bytes: %v", n, err)
+				break
+			}
+		}
+	} else {
+		//otherwise read all with ioutil
+		data, err := ioutil.ReadAll(fd)
+		if err != nil {
+			return nil, err
+		}
+		return data, nil
+	}
+
+	return nil, fmt.Errorf("Need to call with a file that exists for now")
+}
+
 func (E *editor) openFile(f string) {
-	data, err := ioutil.ReadFile(f)
+	data, err := openAndReadFile(f)
 	if err != nil {
 		// TODO Handle failing to open file
 		// need to figure out how i will display that to the user
@@ -196,7 +247,7 @@ func (E *editor) ProcessKey() rune {
 // RefreshScreen calls all the necessary functions between terminal screen refreshes
 func (E *editor) RefreshScreen() {
 	E.s.HideCursor()
-	// E.s.Clear()
+	E.s.Clear()
 	E.DrawRows()
 	E.displayCursor()
 	E.s.Show()
