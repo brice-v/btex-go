@@ -23,7 +23,6 @@ func drawString(s tcell.Screen, x int, y int, stringToDraw string) {
 	s.Show()
 }
 
-// drawString sets the content at the starting location given by x and y
 func (E *editor) drawEditorChars(xPos int, yPos int, leftChar rune) {
 	w, h := E.s.Size()
 	for rowindx := 0; rowindx < E.numrows && rowindx < h; rowindx++ {
@@ -201,7 +200,9 @@ func (E *editor) RefreshScreen() {
 // this is going to change soon
 func (E *editor) DrawRows() {
 	w, h := E.s.Size()
-	E.drawEditorChars(1, 0, LEFTSIDE_CHAR)
+	for i := 0; i < h; i++ {
+		E.s.SetContent(0, i, '~', nil, tcell.StyleDefault)
+	}
 	// Draw Welcome Screen
 	if E.displayWelcome && len(E.rows) < 1 {
 		textToDraw := fmt.Sprintf("btex editor -- version %s", BTEX_VERSION)
