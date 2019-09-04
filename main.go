@@ -25,12 +25,14 @@ func drawString(s tcell.Screen, x int, y int, stringToDraw string) {
 
 // drawString sets the content at the starting location given by x and y
 func (E *editor) drawEditorChars(xPos int, yPos int, leftChar rune) {
-	// w, h := E.s.Size()
-	for rowindx := 0; rowindx < E.numrows; rowindx++ {
-		for charindx := 0; charindx < E.rows[rowindx].length; charindx++ {
-			E.s.SetContent(charindx+1, rowindx, E.rows[rowindx].chars[charindx], nil, tcell.StyleDefault)
+	w, h := E.s.Size()
+	for rowindx := 0; rowindx < E.numrows && rowindx < h; rowindx++ {
+		for charindx := 0; charindx < E.rows[rowindx].length && charindx < w; charindx++ {
+			E.s.SetContent(charindx+2, rowindx, E.rows[rowindx].chars[charindx], nil, tcell.StyleDefault)
 		}
+		// lineNo := fmt.Sprintf("%d", rowindx)
 		E.s.SetContent(0, rowindx, LEFTSIDE_CHAR, nil, tcell.StyleDefault)
+		E.s.SetContent(1, rowindx, ' ', nil, tcell.StyleDefault)
 	}
 
 	E.s.Show()
