@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
-	"log"
 	"os"
 
 	"github.com/gdamore/tcell"
@@ -27,11 +25,10 @@ func drawString(s tcell.Screen, x int, y int, stringToDraw string) {
 
 // drawString sets the content at the starting location given by x and y
 func (E *editor) drawEditorChars(xPos int, yPos int, leftChar rune) {
-	w, h := E.s.Size()
-	for rowindx := 0; rowindx < len(E.rows) && rowindx < h; rowindx++ {
-		for charindx := 0; charindx < E.rows[rowindx].size && charindx < w; charindx++ {
-			E.s.SetContent(charindx+1, rowindx-10, E.rows[rowindx].chars[charindx], nil, tcell.StyleDefault)
-		}
+	// w, h := E.s.Size()
+	for rowindx := 0; rowindx < E.numrows; rowindx++ {
+		// for charindx := 0; charindx < E.rows[rowindx].size && charindx < w; charindx++ {
+		// 	E.s.SetContent(charindx+1, rowindx-10, E.rows[rowindx].chars[charindx], nil, tcell.StyleDefault)
 		E.s.SetContent(0, rowindx, LEFTSIDE_CHAR, nil, tcell.StyleDefault)
 	}
 
@@ -42,82 +39,25 @@ func (E *editor) drawEditorChars(xPos int, yPos int, leftChar rune) {
 // FILE / IO
 //
 
-func openAndReadFile(f string) ([]byte, error) {
-	var fd *os.File
-
-	fd, err := os.Open(f)
-	// eventually include this as part of a shutdown
-	defer fd.Close()
-	if err != nil {
-		// TODO Handle failing to open file
-		// need to figure out how i will display that to the user
-		// or make a generic die function
-		return nil, err
-	}
-	fi, err := fd.Stat()
-	if err != nil {
-		return nil, err
-
-	}
-	//1 MB?
-	if fi.Size() > (1 * 1024 * 1024) {
-		//do a buffered read
-		buf := make([]byte, 32*1024) // define your buffer size here.
-
-		for {
-			n, err := fd.Read(buf)
-
-			if n > 0 {
-				return buf[:n], nil // your read buffer.
-			}
-
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				log.Printf("read %d bytes: %v", n, err)
-				break
-			}
-		}
-	} else {
-		//otherwise read all with ioutil
-		data, err := ioutil.ReadAll(fd)
-		if err != nil {
-			return nil, err
-		}
-		return data, nil
-	}
-
-	return nil, fmt.Errorf("Need to call with a file that exists for now")
-}
-
 func getRows(data []byte) []editorRow {
-	ers := make([]editorRow, 10)
-	buf := make([]byte, 10)
+	ers := []editorRow{}
+	buf := []byte{}
 
-	for _, v := range data {
-		buf = append(buf, v)
-		if v == '\n' {
-			buf = append(buf, v)
-			bsize := len(buf)
-			rslice := []rune(string(buf))
-			ers = append(ers, editorRow{size: bsize, chars: rslice})
-			buf = nil
+	length := 0
+	indx := 0
+	for _, char := range data {
+		buf = append(buf, char)
+		if char == '\n' {
+			er := editorRow{length: length, chars: []rune(string(buf))}
+			ers = append(ers, er)
+			//save the newline and the byte slices lenth here
+			buf = []byte{}
+			length = 0
+			indx++
 		}
+		length++
 	}
 	return ers
-}
-
-func (E *editor) OpenFile(f string) {
-	data, err := openAndReadFile(f)
-	if err != nil {
-		// TODO Handle failing to open file
-		// need to figure out how i will display that to the user
-		// or make a generic die function
-		return
-	}
-	E.rows = getRows(data)
-
 }
 
 //
@@ -156,8 +96,8 @@ func (c *cursor) move(d direction) {
 //
 
 type editorRow struct {
-	size  int
-	chars []rune
+	length int
+	chars  []rune
 }
 
 type editor struct {
@@ -166,7 +106,8 @@ type editor struct {
 
 	displayWelcome bool
 
-	rows []editorRow
+	rows    []editorRow
+	numrows int
 }
 
 func (E *editor) displayCursor() {
@@ -267,6 +208,19 @@ func (E *editor) DrawRows() {
 
 }
 
+//OpenFile will open the file and set the buffers accordingly
+func (E *editor) OpenFile(f string) {
+	data, err := ioutil.ReadFile(f)
+	if err != nil {
+		//TODO Better handle this failure
+		return
+	}
+	E.rows = getRows(data)
+	// fmt.Println(E.rows)
+	// os.Exit(0)
+
+}
+
 func initScreen() tcell.Screen {
 	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
 	s, e := tcell.NewScreen()
@@ -293,14 +247,19 @@ func newEditor() *editor {
 		if _, err := os.Stat(os.Args[1]); err == nil {
 			E.OpenFile(os.Args[1])
 		} else if os.IsNotExist(err) {
-			// create then open file
-			// E.OpenFile(os.Args[1])
-			// for now just do nothing and continue
+			// // if it doesnt exist go ahead and create it
+			// newFile, err := os.Create(os.Args[1])
+			// if err != nil {
+			// 	//TODO handle
+			// 	panic(err)
+			// }
+			// E.OpenFile(newFile)
 		} else {
 			// something crazier happened?
 			panic(err)
 		}
 	}
+	E.numrows = len(E.rows)
 
 	E.displayWelcome = true
 	return E
