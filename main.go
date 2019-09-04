@@ -26,21 +26,15 @@ func drawString(s tcell.Screen, x int, y int, stringToDraw string) {
 }
 
 // drawString sets the content at the starting location given by x and y
-func (E *editor) drawEditorChars(xPos int, yPos int) {
-	curCharCount := 0
-	for i, v := range E.row.chars {
-		if v == '\n' || v == '\r' {
-			if i > 1 && E.row.chars[i-1] == '\r' {
-				continue
-			}
-			curCharCount = 0
-			yPos++
-			E.s.SetContent(1, yPos, v, nil, tcell.StyleDefault)
-		} else {
-			curCharCount++
-			E.s.SetContent(xPos+(curCharCount), yPos, v, nil, tcell.StyleDefault)
+func (E *editor) drawEditorChars(xPos int, yPos int, leftChar rune) {
+	w, h := E.s.Size()
+	for rowindx := 0; rowindx < len(E.rows) && rowindx < h; rowindx++ {
+		for charindx := 0; charindx < E.rows[rowindx].size && charindx < w; charindx++ {
+			E.s.SetContent(charindx+1, rowindx-10, E.rows[rowindx].chars[charindx], nil, tcell.StyleDefault)
 		}
+		E.s.SetContent(0, rowindx, LEFTSIDE_CHAR, nil, tcell.StyleDefault)
 	}
+
 	E.s.Show()
 }
 
@@ -97,7 +91,24 @@ func openAndReadFile(f string) ([]byte, error) {
 	return nil, fmt.Errorf("Need to call with a file that exists for now")
 }
 
-func (E *editor) openFile(f string) {
+func getRows(data []byte) []editorRow {
+	ers := make([]editorRow, 10)
+	buf := make([]byte, 10)
+
+	for _, v := range data {
+		buf = append(buf, v)
+		if v == '\n' {
+			buf = append(buf, v)
+			bsize := len(buf)
+			rslice := []rune(string(buf))
+			ers = append(ers, editorRow{size: bsize, chars: rslice})
+			buf = nil
+		}
+	}
+	return ers
+}
+
+func (E *editor) OpenFile(f string) {
 	data, err := openAndReadFile(f)
 	if err != nil {
 		// TODO Handle failing to open file
@@ -105,18 +116,8 @@ func (E *editor) openFile(f string) {
 		// or make a generic die function
 		return
 	}
-	E.row.size = len(data)
-	E.row.chars = []rune(string(data))
+	E.rows = getRows(data)
 
-	E.numrows = func() (val int) {
-		val = 1
-		for _, v := range E.row.chars {
-			if v == '\n' {
-				val++
-			}
-		}
-		return
-	}()
 }
 
 //
@@ -165,8 +166,7 @@ type editor struct {
 
 	displayWelcome bool
 
-	row     editorRow
-	numrows int
+	rows []editorRow
 }
 
 func (E *editor) displayCursor() {
@@ -257,13 +257,9 @@ func (E *editor) RefreshScreen() {
 // this is going to change soon
 func (E *editor) DrawRows() {
 	w, h := E.s.Size()
-	for y := 0; y < h; y++ {
-		E.s.SetContent(0, y, LEFTSIDE_CHAR, nil, tcell.StyleDefault)
-		// just start at the origin
-		E.drawEditorChars(1, 0)
-	}
+	E.drawEditorChars(1, 0, LEFTSIDE_CHAR)
 	// Draw Welcome Screen
-	if E.displayWelcome && E.numrows < 1 {
+	if E.displayWelcome && len(E.rows) < 1 {
 		textToDraw := fmt.Sprintf("btex editor -- version %s", BTEX_VERSION)
 		drawString(E.s, w/3, h/4, textToDraw)
 		drawString(E.s, (w/3)-1, (h/4)+1, "Press Ctrl+C or Ctrl+Q to Quit")
@@ -295,10 +291,10 @@ func newEditor() *editor {
 	// for now only opening file when exactly the 1st argument on the command line
 	if len(os.Args) == 2 {
 		if _, err := os.Stat(os.Args[1]); err == nil {
-			E.openFile(os.Args[1])
+			E.OpenFile(os.Args[1])
 		} else if os.IsNotExist(err) {
 			// create then open file
-			// E.openFile(os.Args[1])
+			// E.OpenFile(os.Args[1])
 			// for now just do nothing and continue
 		} else {
 			// something crazier happened?
