@@ -20,6 +20,8 @@ const (
 	Added NodeType = iota
 	//Original Buffer NodeType descriptor
 	Original
+	//Sentinel is the NodeType that refers to the empty head and tail nodes
+	Sentinel
 )
 
 // PieceTable is currently 2 buffers but will be modified in the future
@@ -33,8 +35,11 @@ func (n *Node) String() (result string) {
 	if n.typ == Original {
 		result = fmt.Sprintf("{NodeType: Original, start: %d, length: %d, lineOffsets: %v}",
 			n.start, n.length, n.lineOffsets)
-	} else {
+	} else if n.typ == Added {
 		result = fmt.Sprintf("{NodeType: Added, start: %d, length: %d, lineOffsets: %v}}",
+			n.start, n.length, n.lineOffsets)
+	} else {
+		result = fmt.Sprintf("{NodeType: Sentinel, start: %d, length: %d, lineOffsets: %v}}",
 			n.start, n.length, n.lineOffsets)
 	}
 	return
@@ -54,11 +59,11 @@ func (PT *PieceTable) newNodeAppendOnly(typ NodeType, start, length int, lineOff
 }
 
 func (PT *PieceTable) newNodeBefore(typ NodeType, start, length int, lineOffsets []int, currentNode *list.Element) {
-	PT.nodes.InsertBefore(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, currentNode.Next())
+	PT.nodes.InsertBefore(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, currentNode.Prev())
 }
 
 func (PT *PieceTable) newNodeAfter(typ NodeType, start, length int, lineOffsets []int, currentNode *list.Element) {
-	PT.nodes.InsertBefore(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, currentNode.Next())
+	PT.nodes.InsertAfter(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, currentNode.Next())
 }
 
 // //AppendBytes allows append only nodes to be added to the piece table
@@ -133,49 +138,68 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) {
 		if !ok {
 			panic("Not unrwapping a node")
 		}
-
+		//Skip the sentinel nodes
+		if n.typ == Sentinel {
+			e = e.Next()
+			continue
+		}
 		totLen = totLen + n.length
-		println(totLen)
+
 		if offset < totLen {
 			// this is all for the node that goes before
 			currentNodeType := n.typ
-			lengthToOffset := totLen - offset
+
+			lengthToOffset := n.start + offset
 			startStaysSame := n.start
-			println(startStaysSame)
+
 			var recalculatedLineOffsets []int
 			if currentNodeType == Original {
-				newBuf := PT.original[startStaysSame:lengthToOffset]
+				newBuf := PT.original[startStaysSame : n.start+offset]
 				recalculatedLineOffsets = getLineOffsets(newBuf)
 			} else {
-				newBuf := PT.added[startStaysSame:lengthToOffset]
+				newBuf := PT.added[startStaysSame : n.start+offset]
 				recalculatedLineOffsets = getLineOffsets(newBuf)
 			}
 
 			//this is the original data and were fixing the view on it
 			PT.newNodeBefore(currentNodeType, startStaysSame, lengthToOffset, recalculatedLineOffsets, e)
+
 			// this is the new data insertion
 			PT.newNodeBefore(Added, newNodeStart, newNodeLength, los, e)
 
 			//fixing the new view continued
-			newStart := lengthToOffset + 1
-			newLength := totLen - newStart
-			topRange := newLength + newStart - 1
+			newStart := n.start
+			newLength := n.length + n.start
+			topRange := newLength
 
 			if currentNodeType == Original {
+				println("new start", newStart)
+				println("new length", newLength)
+				println("top range", topRange)
 				newBuf := PT.original[newStart:topRange]
 				recalculatedLineOffsets = getLineOffsets(newBuf)
-			} else {
+			} else if currentNodeType == Added {
 				newBuf := PT.added[newStart:topRange]
 				recalculatedLineOffsets = getLineOffsets(newBuf)
+			} else {
+				continue
 			}
-			PT.newNodeAfter(currentNodeType, newStart, newLength, recalculatedLineOffsets, e)
+			PT.newNodeAfter(currentNodeType, newStart, newLength, recalculatedLineOffsets, e.Prev())
 			// dont know if its possible but delete the node were standing on
-			e = e.Next()
-			// PT.nodes.Remove(e.Prev())
-			return
+			// e = e.Next()
+			// PT.nodes.Remove(e)
 		}
 
 	}
+}
+
+func newEmptyList() *list.List {
+	hn := &Node{typ: Sentinel, start: 0, length: 0, lineOffsets: []int{}}
+	tn := &Node{typ: Sentinel, start: 0, length: 0, lineOffsets: []int{}}
+	l := list.New()
+	l.PushBack(tn)
+	l.PushBack(hn)
+	return l
 }
 
 // NewPT will eventually return a piecetable/map and will probably have a separate
@@ -183,13 +207,13 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) {
 func NewPT(optBuf []rune) *PieceTable {
 	if optBuf != nil {
 		optBufLen := len(optBuf)
-		pt := &PieceTable{original: optBuf, added: []rune(""), nodes: list.New()}
+		pt := &PieceTable{original: optBuf, added: []rune(""), nodes: newEmptyList()}
 		//calculate lineoffsets
 		los := getLineOffsets(optBuf)
 		pt.newNodeAppendOnly(Original, 0, optBufLen, los)
 		return pt
 	}
-	return &PieceTable{original: []rune(""), added: []rune(""), nodes: list.New()}
+	return &PieceTable{original: []rune(""), added: []rune(""), nodes: newEmptyList()}
 }
 
 func openAndReadFile(f string) []rune {
@@ -200,23 +224,45 @@ func openAndReadFile(f string) []rune {
 	return []rune(string(data))
 }
 
+func cat(pt *PieceTable) {
+	for e := pt.nodes.Front(); e != nil; e = e.Next() {
+		n, ok := e.Value.(*Node)
+		if !ok {
+			panic("Not unrwapping a node")
+		}
+		if n.typ == Original {
+			fmt.Print(string(pt.original[n.start : n.start+n.length]))
+		} else if n.typ == Added {
+			fmt.Print(string(pt.added[n.start : n.start+n.length]))
+		} else {
+			e = e.Next()
+		}
+	}
+}
+
 func main() {
 
-	data := openAndReadFile("peace.go")
+	// data := openAndReadFile("peace.go")
 
-	pt := NewPT(data)
-	pt.AppendString(`//EXTRA
-	asfjk
+	pt := NewPT([]rune("The quick brown"))
+	// pt.AppendString(`//EXTRA
+	// asfjk
 
+	// data to have at the bottom test`)
 
-	data to have at the bottom test`)
-
-	pt.InsertStringAt(124, `Here is the new 
+	pt.InsertStringAt(6, `Here is the new 
 	data`)
+
+	// pt.InsertStringAt(28, `Here is the new afjslkjasflkjasflk
+	// afskjfaskasfljfa
+	// asfjasfkjfkasj
+	// data`)
 	for e := pt.nodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*Node)
 		fmt.Println(n)
 	}
+	cat(pt)
+	println()
 	// x.AppendBytes([]byte("More Text Here:"))
 	// x.AppendBytes([]byte("\n\n"))
 	// x.AppendBytes([]byte("\tMore Text Over Here"))
