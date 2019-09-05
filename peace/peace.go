@@ -10,6 +10,8 @@ import (
 	"log"
 )
 
+var println = fmt.Println
+
 // NodeType Enum they are both readonly/appendonly buffers
 type NodeType int
 
@@ -29,26 +31,34 @@ type PieceTable struct {
 
 func (n *Node) String() (result string) {
 	if n.typ == Original {
-		result = fmt.Sprintf("{NodeType: Original, start: %d, length: %d, visible: %v, lineOffsets: %v}",
-			n.start, n.length, n.visible, n.lineOffsets)
+		result = fmt.Sprintf("{NodeType: Original, start: %d, length: %d, lineOffsets: %v}",
+			n.start, n.length, n.lineOffsets)
 	} else {
-		result = fmt.Sprintf("{NodeType: Added, start: %d, length: %d, visible: %v, lineOffsets: %v}}",
-			n.start, n.length, n.visible, n.lineOffsets)
+		result = fmt.Sprintf("{NodeType: Added, start: %d, length: %d, lineOffsets: %v}}",
+			n.start, n.length, n.lineOffsets)
 	}
 	return
 }
 
 // Node is the element in the list that contains some metadata for the contents and the operation
 type Node struct {
-	typ         NodeType
-	start       int
-	length      int
-	visible     bool
+	typ    NodeType
+	start  int
+	length int
+
 	lineOffsets []int
 }
 
-func (PT *PieceTable) newNode(typ NodeType, start, length int, visible bool, lineOffsets []int) {
-	PT.nodes.PushBack(&Node{typ: typ, start: start, length: length, visible: visible, lineOffsets: lineOffsets})
+func (PT *PieceTable) newNodeAppendOnly(typ NodeType, start, length int, lineOffsets []int) {
+	PT.nodes.PushBack(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets})
+}
+
+func (PT *PieceTable) newNodeBefore(typ NodeType, start, length int, lineOffsets []int, currentNode *list.Element) {
+	PT.nodes.InsertBefore(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, currentNode.Next())
+}
+
+func (PT *PieceTable) newNodeAfter(typ NodeType, start, length int, lineOffsets []int, currentNode *list.Element) {
+	PT.nodes.InsertBefore(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, currentNode.Next())
 }
 
 // //AppendBytes allows append only nodes to be added to the piece table
@@ -59,7 +69,7 @@ func (PT *PieceTable) newNode(typ NodeType, start, length int, visible bool, lin
 // 	PT.added = append(PT.added, data...)
 // 	//calculate line offsets
 // 	los := getLineOffsets(data)
-// 	PT.newNode(Added, dataStart, dataLen, true, los)
+// 	PT.newNodeAppendOnly(Added, dataStart, dataLen, true, los)
 // }
 
 // // Display currently displays the []bytes to the terminal ( there will be read functions instead)
@@ -102,7 +112,70 @@ func (PT *PieceTable) AppendString(data string) {
 	dLen := len(d)
 	los := getLineOffsets(d)
 	PT.added = append(PT.added, d...)
-	PT.newNode(Added, addBufBeforeLen, dLen, true, los)
+	PT.newNodeAppendOnly(Added, addBufBeforeLen, dLen, los)
+}
+
+//InsertStringAt will insert a string into the piece table at an offset
+// this offset can be considered the byte location from the beginning of
+// the visible buffers.
+// data is the string to (append to the add buffer) be added to the
+// PieceTable
+func (PT *PieceTable) InsertStringAt(offset int, data string) {
+	newNodeStart := len(PT.added)
+	newNodeLength := len(data)
+	PT.added = append(PT.added, []rune(data)...)
+	los := getLineOffsets([]rune(data))
+
+	totLen := 0
+	// looop through the nodes and find out where the offset is gonna be, use the length += next length to
+	for e := PT.nodes.Front(); e != nil; e = e.Next() {
+		n, ok := e.Value.(*Node)
+		if !ok {
+			panic("Not unrwapping a node")
+		}
+
+		totLen = totLen + n.length
+		println(totLen)
+		if offset < totLen {
+			// this is all for the node that goes before
+			currentNodeType := n.typ
+			lengthToOffset := totLen - offset
+			startStaysSame := n.start
+			println(startStaysSame)
+			var recalculatedLineOffsets []int
+			if currentNodeType == Original {
+				newBuf := PT.original[startStaysSame:lengthToOffset]
+				recalculatedLineOffsets = getLineOffsets(newBuf)
+			} else {
+				newBuf := PT.added[startStaysSame:lengthToOffset]
+				recalculatedLineOffsets = getLineOffsets(newBuf)
+			}
+
+			//this is the original data and were fixing the view on it
+			PT.newNodeBefore(currentNodeType, startStaysSame, lengthToOffset, recalculatedLineOffsets, e)
+			// this is the new data insertion
+			PT.newNodeBefore(Added, newNodeStart, newNodeLength, los, e)
+
+			//fixing the new view continued
+			newStart := lengthToOffset + 1
+			newLength := totLen - newStart
+			topRange := newLength + newStart - 1
+
+			if currentNodeType == Original {
+				newBuf := PT.original[newStart:topRange]
+				recalculatedLineOffsets = getLineOffsets(newBuf)
+			} else {
+				newBuf := PT.added[newStart:topRange]
+				recalculatedLineOffsets = getLineOffsets(newBuf)
+			}
+			PT.newNodeAfter(currentNodeType, newStart, newLength, recalculatedLineOffsets, e)
+			// dont know if its possible but delete the node were standing on
+			e = e.Next()
+			// PT.nodes.Remove(e.Prev())
+			return
+		}
+
+	}
 }
 
 // NewPT will eventually return a piecetable/map and will probably have a separate
@@ -113,7 +186,7 @@ func NewPT(optBuf []rune) *PieceTable {
 		pt := &PieceTable{original: optBuf, added: []rune(""), nodes: list.New()}
 		//calculate lineoffsets
 		los := getLineOffsets(optBuf)
-		pt.newNode(Original, 0, optBufLen, true, los)
+		pt.newNodeAppendOnly(Original, 0, optBufLen, los)
 		return pt
 	}
 	return &PieceTable{original: []rune(""), added: []rune(""), nodes: list.New()}
@@ -133,7 +206,13 @@ func main() {
 
 	pt := NewPT(data)
 	pt.AppendString(`//EXTRA
+	asfjk
+
+
 	data to have at the bottom test`)
+
+	pt.InsertStringAt(124, `Here is the new 
+	data`)
 	for e := pt.nodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*Node)
 		fmt.Println(n)
