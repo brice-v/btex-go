@@ -7,6 +7,9 @@ import (
 	"github.com/gdamore/tcell/encoding"
 )
 
+// InitScreen initializes and returns the screen object
+// style is set to bg='black' and fg='white'
+// Unicode is registered here
 func InitScreen() tcell.Screen {
 	//unicode support
 	encoding.Register()
