@@ -3,6 +3,7 @@ package editor
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"btex-go/screen"
@@ -192,7 +193,7 @@ func NewEditor() *Editor {
 			// E.OpenFile(newFile)
 		} else {
 			// something crazier happened?
-			panic(err)
+			log.Fatal(err)
 		}
 	}
 	E.numrows = len(E.rows)
