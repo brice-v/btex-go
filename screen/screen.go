@@ -15,11 +15,13 @@ func InitScreen() tcell.Screen {
 		// log error instead of panic
 		log.Fatal(e)
 	}
+	if e := s.Init(); e != nil {
+		log.Fatal(e)
+	}
 
 	s.SetStyle(tcell.StyleDefault.
-		Foreground(tcell.ColorBlack).
-		Background(tcell.ColorWhite))
-	s.Clear()
-	s.Init()
+		Foreground(tcell.ColorWhite).
+		Background(tcell.ColorBlack))
+
 	return s
 }
