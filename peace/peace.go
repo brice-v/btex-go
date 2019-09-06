@@ -140,7 +140,7 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) {
 		}
 		//Skip the sentinel nodes
 		if n.typ == Sentinel {
-			e = e.Next()
+			// e = e.Next()
 			continue
 		}
 		totLen = totLen + n.length
@@ -148,46 +148,43 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) {
 		if offset < totLen {
 			// this is all for the node that goes before
 			currentNodeType := n.typ
-
+			currentStart := n.start
 			lengthToOffset := n.start + offset
-			startStaysSame := n.start
+			//lets just imagine  the above will work
 
+			//not sure if any of these ranges make sense and if thats the cause
 			var recalculatedLineOffsets []int
 			if currentNodeType == Original {
-				newBuf := PT.original[startStaysSame : n.start+offset]
+				newBuf := PT.original[currentStart:lengthToOffset]
+				println(string(newBuf))
 				recalculatedLineOffsets = getLineOffsets(newBuf)
 			} else {
-				newBuf := PT.added[startStaysSame : n.start+offset]
+				newBuf := PT.added[currentStart:lengthToOffset]
 				recalculatedLineOffsets = getLineOffsets(newBuf)
 			}
 
 			//this is the original data and were fixing the view on it
-			PT.newNodeBefore(currentNodeType, startStaysSame, lengthToOffset, recalculatedLineOffsets, e)
+			PT.newNodeBefore(currentNodeType, currentStart, lengthToOffset, recalculatedLineOffsets, e)
 
 			// this is the new data insertion
 			PT.newNodeBefore(Added, newNodeStart, newNodeLength, los, e)
 
 			//fixing the new view continued
-			newStart := n.start
-			newLength := n.length + n.start
-			topRange := newLength
+			newStart := n.start + (offset - n.start)
 
 			if currentNodeType == Original {
-				println("new start", newStart)
-				println("new length", newLength)
-				println("top range", topRange)
-				newBuf := PT.original[newStart:topRange]
+				newBuf := PT.original[newStart:n.length]
 				recalculatedLineOffsets = getLineOffsets(newBuf)
 			} else if currentNodeType == Added {
-				newBuf := PT.added[newStart:topRange]
+				newBuf := PT.added[newStart:n.length]
 				recalculatedLineOffsets = getLineOffsets(newBuf)
 			} else {
 				continue
 			}
-			PT.newNodeAfter(currentNodeType, newStart, newLength, recalculatedLineOffsets, e.Prev())
+			PT.newNodeAfter(currentNodeType, newStart, n.length, recalculatedLineOffsets, e.Prev())
 			// dont know if its possible but delete the node were standing on
-			// e = e.Next()
-			// PT.nodes.Remove(e)
+			e = e.Next()
+			PT.nodes.Remove(e)
 		}
 
 	}
