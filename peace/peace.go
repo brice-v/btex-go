@@ -55,15 +55,23 @@ type Node struct {
 }
 
 func (PT *PieceTable) newNodeAppendOnly(typ NodeType, start, length int, lineOffsets []int) {
-	PT.nodes.PushBack(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets})
+	PT.nodes.InsertBefore(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, PT.nodes.Back())
 }
 
 func (PT *PieceTable) newNodeBefore(typ NodeType, start, length int, lineOffsets []int, currentNode *list.Element) {
-	PT.nodes.InsertBefore(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, currentNode.Prev())
+	abc := currentNode.Next()
+	if abc != nil {
+		PT.nodes.InsertBefore(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, currentNode.Next())
+	}
+
 }
 
 func (PT *PieceTable) newNodeAfter(typ NodeType, start, length int, lineOffsets []int, currentNode *list.Element) {
-	PT.nodes.InsertAfter(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, currentNode.Next())
+	abc := currentNode.Next()
+	if abc != nil {
+		PT.nodes.InsertAfter(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, currentNode.Prev())
+	}
+	// PT.nodes.InsertAfter(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, currentNode.Next())
 }
 
 // //AppendBytes allows append only nodes to be added to the piece table
@@ -140,7 +148,9 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) {
 		}
 		//Skip the sentinel nodes
 		if n.typ == Sentinel {
-			// e = e.Next()
+			if e.Next() == nil {
+				//this means were in the end node
+			}
 			continue
 		}
 		totLen = totLen + n.length
@@ -164,10 +174,10 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) {
 			}
 
 			//this is the original data and were fixing the view on it
-			PT.newNodeBefore(currentNodeType, currentStart, lengthToOffset, recalculatedLineOffsets, e)
+			PT.newNodeBefore(currentNodeType, currentStart, lengthToOffset, recalculatedLineOffsets, e.Prev())
 
 			// this is the new data insertion
-			PT.newNodeBefore(Added, newNodeStart, newNodeLength, los, e)
+			PT.newNodeBefore(Added, newNodeStart, newNodeLength, los, e.Prev())
 
 			//fixing the new view continued
 			newStart := n.start + (offset - n.start)
@@ -181,10 +191,13 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) {
 			} else {
 				continue
 			}
-			PT.newNodeAfter(currentNodeType, newStart, n.length, recalculatedLineOffsets, e.Prev())
+			PT.newNodeAfter(currentNodeType, newStart, n.length, recalculatedLineOffsets, e)
 			// dont know if its possible but delete the node were standing on
-			e = e.Next()
-			PT.nodes.Remove(e)
+			abc := e.Next()
+			if abc != nil {
+				PT.nodes.Remove(e.Prev())
+			}
+
 		}
 
 	}
@@ -232,7 +245,8 @@ func cat(pt *PieceTable) {
 		} else if n.typ == Added {
 			fmt.Print(string(pt.added[n.start : n.start+n.length]))
 		} else {
-			e = e.Next()
+			// e = e.Next()
+			continue
 		}
 	}
 }
@@ -241,14 +255,15 @@ func main() {
 
 	// data := openAndReadFile("peace.go")
 
-	pt := NewPT([]rune("The quick brown"))
-	// pt.AppendString(`//EXTRA
-	// asfjk
+	pt := NewPT([]rune(`The quick 
+	brown`))
+	pt.AppendString(`//EXTRA
+	asfjk
 
 	// data to have at the bottom test`)
 
 	pt.InsertStringAt(6, `Here is the new 
-	data`)
+data`)
 
 	// pt.InsertStringAt(28, `Here is the new afjslkjasflkjasflk
 	// afskjfaskasfljfa
