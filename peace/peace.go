@@ -99,7 +99,7 @@ func (PT *PieceTable) AppendString(data string) {
 // the visible buffers.
 // data is the string to (append to the add buffer) be added to the
 // PieceTable
-func (PT *PieceTable) InsertStringAt(offset int, data string) {
+func (PT *PieceTable) InsertStringAt(offset int, data string) bool {
 	//record where we are in the document pretty much
 	totLen := 0
 	// -------------------------------------------------------------
@@ -182,14 +182,15 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) {
 					PT.nodes.Remove(PT.nodes.Back())
 				}
 			}
-			break
+			return true
 		} else if offset == totLen {
 			//insert between 2 dll nodes
 			PT.nodes.InsertAfter(newNodeMiddle, e)
-			break
+			return true
 		}
 
 	}
+	return false
 }
 
 func newEmptyList() *list.List {
@@ -249,7 +250,10 @@ func main() {
 	input := []rune(`Thequickbrown`)
 	// println("len(input)=", len(input))
 	pt := NewPT(input)
-	pt.InsertStringAt(0, "aflsj")
+	ok := pt.InsertStringAt(0, "aflsj")
+	if !ok {
+		println("InsertStringAt failed")
+	}
 	// 	pt.AppendString(`//EXTRA
 	// 	asfjk
 
