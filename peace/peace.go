@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 )
 
 var println = fmt.Println
@@ -63,21 +64,70 @@ func getLineOffsets(buf []rune) []int {
 	return bucket
 }
 
+// ------------------------------------------------------------------------
+//
+// REMOVE FUNCTIONS
+//
+
+// DeleteStringAt will delete the string in the nodes from
+// start is the char the delete starts
+// length is the length of the delete. to delete only 1 char it will be a 0 length
+func (PT *PieceTable) DeleteStringAt(start, length int) error {
+	if start < 0 {
+		return fmt.Errorf("Start must be positive")
+	}
+	//first have to find which node this starts in
+	totLen := 0
+	for e := PT.nodes.Front(); e != nil; e = e.Next() {
+		n, ok := e.Value.(*Node)
+		if !ok {
+			log.Fatal("Found non Node when trying to unwrap in deletestringat")
+		}
+		totLen += n.length
+
+		offset := start
+		// if the length is negative we calculate a different starting point
+		// otherwise it stays as the offset
+		if length < 0 {
+			offset = start - int(math.Abs(float64(length)))
+			if offset < 0 {
+				return fmt.Errorf("Offset was calculated to be less than 0 this")
+			}
+		}
+
+		// need to check if this exists within the same node we are in and if it doesnt
+		//
+		endPointOfDeleteStringInBuffer := offset + length
+
+		// still need to keep going if we arent at the offset
+		if offset > totLen {
+			continue
+		} else if totLen > offset && endPointOfDeleteStringInBuffer <= totLen {
+			//in this case we remove the node were in, and make sure to add a new node if necessary
+			// for the remainder of end offset to the totlen
+			data := PT.buffer[n.typ][n.start : n.start+n.length]
+			newLength := offset - n.start
+			los := getLineOffsets([]rune(data[n.start : n.start+newLength]))
+			newLeftNode := &Node{typ: n.typ, start: n.start, length: newLength, lineOffsets: los}
+
+		} else if totLen == offset {
+
+		}
+
+	}
+
+}
+
+// ------------------------------------------------------------------------
+//
+// ADD FUNCTIONS
+//
+
 //AppendString allows a new string to be added to the add buffer
 // this is strictly for append
+// just syntactic
 func (PT *PieceTable) AppendString(data string) {
-	addBufBeforeLen := len(PT.buffer[Added])
-	d := []rune(data)
-	dLen := len(d)
-	los := getLineOffsets(d)
-	PT.buffer[Added] = append(PT.buffer[Added], d...)
-	newAppendNode := &Node{
-		typ:         Added,
-		start:       addBufBeforeLen,
-		length:      dLen,
-		lineOffsets: los,
-	}
-	PT.nodes.InsertBefore(newAppendNode, PT.nodes.Back())
+	PT.InsertStringAt(len(PT.buffer[Added])+len(PT.buffer[Original]), data)
 }
 
 //InsertStringAt will insert a string into the piece table at an offset
@@ -104,7 +154,12 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) bool {
 	nodeMiddleLength := len(data)
 	// append the rest of the string to the add buffer
 	PT.buffer[Added] = append(PT.buffer[Added], []rune(data)...)
-	newNodeMiddle := &Node{typ: nodeMiddleTyp, start: nodeMiddleStart, length: nodeMiddleLength, lineOffsets: nodeMiddleLos}
+	newNodeMiddle := &Node{
+		typ:         nodeMiddleTyp,
+		start:       nodeMiddleStart,
+		length:      nodeMiddleLength,
+		lineOffsets: nodeMiddleLos,
+	}
 
 	// currentTotLen := 0
 	// looop through the nodes and find out where the offset is gonna be, use the length += next length to
@@ -145,7 +200,12 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) bool {
 			nodeLeftLength := n.length - (totLen - offset)
 			// hopefully this works
 			nodeLeftLos := getLineOffsets(PT.buffer[n.typ][n.start:offset])
-			newNodeLeft := &Node{typ: nodeLeftTyp, start: nodeLeftStart, length: nodeLeftLength, lineOffsets: nodeLeftLos}
+			newNodeLeft := &Node{
+				typ:         nodeLeftTyp,
+				start:       nodeLeftStart,
+				length:      nodeLeftLength,
+				lineOffsets: nodeLeftLos,
+			}
 
 			//new node for the right
 			nodeRightTyp := n.typ
@@ -179,6 +239,8 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) bool {
 	return false
 }
 
+// ------------------------------------------------------------------------
+
 func newEmptyList() *list.List {
 	hn := &Node{typ: Sentinel, start: 0, length: 0, lineOffsets: []int{}}
 	tn := &Node{typ: Sentinel, start: 0, length: 0, lineOffsets: []int{}}
@@ -197,7 +259,13 @@ func NewPT(optBuf []rune) *PieceTable {
 		pt := &PieceTable{buffer: bufs, nodes: newEmptyList()}
 		//calculate lineoffsets
 		los := getLineOffsets(optBuf)
-		pt.newNodeAppendOnly(Original, 0, optBufLen, los)
+		newAppendNode := &Node{
+			typ:         Original,
+			start:       0,
+			length:      optBufLen,
+			lineOffsets: los,
+		}
+		pt.nodes.InsertBefore(newAppendNode, pt.nodes.Back())
 		return pt
 	}
 	bufs := map[NodeType][]rune{Original: []rune(""), Added: []rune("")}
@@ -231,19 +299,19 @@ func cat(pt *PieceTable) {
 
 func main() {
 
-	// data := openAndReadFile("peace.go")
+	data := openAndReadFile("unicode.txt")
 
-	input := []rune(`Thequickbrown`)
+	// input := []rune(`Thequi߷ckbrown`)
 	// println("len(input)=", len(input))
-	pt := NewPT(input)
+	pt := NewPT(data)
 	ok := pt.InsertStringAt(0, "aflsj")
 	if !ok {
 		println("InsertStringAt failed")
 	}
-	// 	pt.AppendString(`//EXTRA
-	// 	asfjk
+	pt.AppendString(`//EXTRA
+		asfjk
 
-	// 	// data to have at the bottom test`)
+		// data to have at the bottom test`)
 
 	// 	pt.InsertStringAt(6, `Here is the new
 	// data`)
