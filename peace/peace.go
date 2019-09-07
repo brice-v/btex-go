@@ -87,6 +87,12 @@ func (PT *PieceTable) DeleteStringAt(start, length int) error {
 	if start < 0 {
 		return fmt.Errorf("Start must be positive")
 	}
+	var endOfDeleteStringInDoc int
+	if length < 0 {
+		endOfDeleteStringInDoc = start
+	} else {
+		endOfDeleteStringInDoc = start + length
+	}
 
 	//totLen records the total length of the visible buffer as we continue through
 	totLen := 0
@@ -104,6 +110,7 @@ func (PT *PieceTable) DeleteStringAt(start, length int) error {
 		// add each nodes length to get the current place in the visible buffer
 		totLen += n.length
 		offset := start
+
 		// if the length is negative we calculate a different starting point
 		// otherwise it stays as the offset
 		if length < 0 {
@@ -118,6 +125,14 @@ func (PT *PieceTable) DeleteStringAt(start, length int) error {
 		if offset > totLen {
 			continue
 		} else if totLen > offset {
+			// so the code below just covers the one case where the node we are inside of is the correct node to delete
+			// we now need to cover a delete spanning multiple nodes
+			// this is just the node that we are starting on
+			if totLen < endOfDeleteStringInDoc {
+				//so close but we dont always want to drop it
+				PT.deleteNode(e)
+				continue
+			}
 			//in this case we remove the node were in, and make sure to add a new node if necessary
 			// for the remainder of end offset to the totlen
 
@@ -131,9 +146,12 @@ func (PT *PieceTable) DeleteStringAt(start, length int) error {
 			// NodeRight: Start=currentNodeStart+length, length=currentNodeLength-length
 			// ]<->[ 1,2,3]<->[8,9,10]<->[..
 			// ------------------------------------------------------------------------------------
+			// for i := docStartPosForNode; i < totLen; i++ {
+
+			// }
 
 			nodeLeftStart := n.start
-			nodeLeftLength := offset - n.start
+			nodeLeftLength := totLen - start
 			nodeLeftBuf := []rune(PT.buffer[n.typ][nodeLeftStart : nodeLeftStart+nodeLeftLength])
 			nodeLeftLos := getLineOffsets(nodeLeftBuf)
 
@@ -157,7 +175,26 @@ func (PT *PieceTable) DeleteStringAt(start, length int) error {
 			PT.nodes.InsertBefore(nodeLeft, e)
 			PT.nodes.InsertBefore(nodeRight, e)
 			PT.deleteNode(e)
+
 			return nil
+
+		} else if totLen == offset && length == 1 {
+			nodeLeftStart := n.start
+			nodeLeftLength := totLen - 1
+			nodeLeftBuf := []rune(PT.buffer[n.typ][nodeLeftStart : nodeLeftStart+nodeLeftLength])
+			nodeLeftLos := getLineOffsets(nodeLeftBuf)
+
+			nodeLeft := &Node{
+				typ:         n.typ,
+				start:       nodeLeftStart,
+				length:      nodeLeftLength,
+				lineOffsets: nodeLeftLos,
+			}
+			PT.nodes.InsertBefore(nodeLeft, e)
+			PT.deleteNode(e)
+			return nil
+		} else {
+			return fmt.Errorf("Case not handled totlen=%v, offset=%v, start=%v", totLen, offset, start)
 		}
 
 	}
@@ -340,11 +377,18 @@ func main() {
 
 	// data := openAndReadFile("unicode.txt")
 
-	data := []rune(`ThequiΣckbrown
-`)
+	data := []rune(`Thequi Σckbrown`)
 	// println("len(input)=", len(input))
 	pt := NewPT(data)
-	pt.DeleteStringAt(0, 0)
+	pt.InsertStringAt(6, "AAA")
+	// need to get this working
+	// pt.DeleteStringAt(7, 1)
+	// need to get this working
+	// pt.DeleteStringAt(0, 8)
+	// need to get this working
+	// pt.DeleteStringAt(7, 1)
+
+	// fmt.Println(result)
 
 	// pt.AppendString(`//EXTRA
 	// 	asfjk
