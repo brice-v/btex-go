@@ -53,26 +53,6 @@ type Node struct {
 	lineOffsets []int
 }
 
-func (PT *PieceTable) newNodeAppendOnly(typ NodeType, start, length int, lineOffsets []int) {
-	PT.nodes.InsertBefore(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, PT.nodes.Back())
-}
-
-func (PT *PieceTable) newNodeBefore(typ NodeType, start, length int, lineOffsets []int, currentNode *list.Element) {
-	abc := currentNode.Next()
-	if abc != nil {
-		PT.nodes.InsertBefore(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, currentNode.Next())
-	}
-
-}
-
-func (PT *PieceTable) newNodeAfter(typ NodeType, start, length int, lineOffsets []int, currentNode *list.Element) {
-	abc := currentNode.Next()
-	if abc != nil {
-		PT.nodes.InsertAfter(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, currentNode.Prev())
-	}
-	// PT.nodes.InsertAfter(&Node{typ: typ, start: start, length: length, lineOffsets: lineOffsets}, currentNode.Next())
-}
-
 func getLineOffsets(buf []rune) []int {
 	var bucket []int
 	for i := 0; i < len(buf); i++ {
@@ -91,7 +71,13 @@ func (PT *PieceTable) AppendString(data string) {
 	dLen := len(d)
 	los := getLineOffsets(d)
 	PT.buffer[Added] = append(PT.buffer[Added], d...)
-	PT.newNodeAppendOnly(Added, addBufBeforeLen, dLen, los)
+	newAppendNode := &Node{
+		typ:         Added,
+		start:       addBufBeforeLen,
+		length:      dLen,
+		lineOffsets: los,
+	}
+	PT.nodes.InsertBefore(newAppendNode, PT.nodes.Back())
 }
 
 //InsertStringAt will insert a string into the piece table at an offset
@@ -273,10 +259,5 @@ func main() {
 		fmt.Println(n)
 	}
 	cat(pt)
-	// println()
-	// x.AppendBytes([]byte("More Text Here:"))
-	// x.AppendBytes([]byte("\n\n"))
-	// x.AppendBytes([]byte("\tMore Text Over Here"))
-	// x.Display()
 
 }
