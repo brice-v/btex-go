@@ -108,17 +108,17 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) {
 	// that is what actually determines its place in the dll and not
 	// the content that refers to the view on the buffer
 	// -------------------------------------------------------------
-	newNodeTyp := Added
+	nodeMiddleTyp := Added
 	// calulate line offsets for the newly inserted data
-	newNodeLos := getLineOffsets([]rune(data))
+	nodeMiddleLos := getLineOffsets([]rune(data))
 	//the start of the new node is the current length of the `Added`
 	// buffer because that is where this new data will be visible from.
-	newNodeStart := len(PT.buffer[Added])
+	nodeMiddleStart := len(PT.buffer[Added])
 	// this is the length of the data we are passing in
-	newNodeLength := len(data)
+	nodeMiddleLength := len(data)
 	// append the rest of the string to the add buffer
 	PT.buffer[Added] = append(PT.buffer[Added], []rune(data)...)
-	newNodeMiddle := &Node{typ: newNodeTyp, start: newNodeStart, length: newNodeLength, lineOffsets: newNodeLos}
+	newNodeMiddle := &Node{typ: nodeMiddleTyp, start: nodeMiddleStart, length: nodeMiddleLength, lineOffsets: nodeMiddleLos}
 
 	// currentTotLen := 0
 	// looop through the nodes and find out where the offset is gonna be, use the length += next length to
@@ -158,30 +158,30 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) {
 			nodeLeftLos := getLineOffsets(PT.buffer[n.typ][n.start:offset])
 			newNodeLeft := &Node{typ: nodeLeftTyp, start: nodeLeftStart, length: nodeLeftLength, lineOffsets: nodeLeftLos}
 
-
-			nodeMiddleTyp := Added
-			nodeMiddleStart := len(PT.buffer[Added])
-			nodeMiddleLength := len(data)
-			nodeMiddleLos := getLineOffsets([]rune(data))
-			newNodeMiddle := &Node{typ: Added, start: nodeMiddleStart, length: nodeMiddleLength, lineOffsets: nodeMiddleLos}
-
-
 			//new node for the right
 			nodeRightTyp := n.typ
-			nodeRightStart:= nodeLeftLength
+			nodeRightStart := nodeLeftLength
 			nodeRightLenth := totLen - offset
-			nodeRightLos := getLineOffsets(PT.buffer[n.typ][nodeRightStart:nodeRightLenth+nodeRightStart])
+			nodeRightLos := getLineOffsets(PT.buffer[n.typ][nodeRightStart : nodeRightLenth+nodeRightStart])
 			newNodeRight := &Node{typ: nodeRightTyp, start: nodeRightStart, length: nodeRightLenth, lineOffsets: nodeRightLos}
+
+			//now that we have our nodes, load them into the dll
+			// and then remove the node we are currently on
+			PT.nodes.InsertBefore(newNodeLeft, e)
+			PT.nodes.InsertBefore(newNodeMiddle, e)
+			PT.nodes.InsertBefore(newNodeRight, e)
+
+			// remove the node we are currently on top of and
+			// break the loop because we are done (this could be a return)
+			PT.nodes.MoveToBack(e)
+			if this, ok := PT.nodes.Back().Value.(*Node); ok {
+				if this.typ != Sentinel {
+					PT.nodes.Remove(PT.nodes.Back())
+				}
+			}
+			break
 		} else if offset == totLen {
 			//insert between 2 dll nodes
-		} 
-
-		if offset >= n.start && offset <= n.start+n.length {
-			
-			// now create the right node which is trickier
-			nodeRightTyp := n.typ
-			nodeRightStart := offset
-			nodeRightLength := 
 		}
 
 	}
@@ -227,8 +227,6 @@ func cat(pt *PieceTable) {
 			panic("Not unrwapping a node")
 		}
 		if n.typ == Original {
-			println("n.start=", n.start)
-			println("n.length=", n.length)
 			fmt.Print(string(pt.buffer[Original][n.start : n.start+n.length]))
 		} else if n.typ == Added {
 			fmt.Print(string(pt.buffer[Added][n.start : n.start+n.length]))
@@ -245,7 +243,7 @@ func main() {
 
 	input := []rune(`The quick 
 	brown`)
-	println("len(input)=", len(input))
+	// println("len(input)=", len(input))
 	pt := NewPT(input)
 	pt.AppendString(`//EXTRA
 	asfjk
@@ -264,7 +262,7 @@ data`)
 		fmt.Println(n)
 	}
 	cat(pt)
-	println()
+	// println()
 	// x.AppendBytes([]byte("More Text Here:"))
 	// x.AppendBytes([]byte("\n\n"))
 	// x.AppendBytes([]byte("\tMore Text Over Here"))
