@@ -127,6 +127,9 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) {
 		if !ok {
 			panic("Not unrwapping a node")
 		}
+		if n.typ == Sentinel {
+			continue
+		}
 
 		//
 		// SOME NOTES
@@ -182,6 +185,8 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) {
 			break
 		} else if offset == totLen {
 			//insert between 2 dll nodes
+			PT.nodes.InsertAfter(newNodeMiddle, e)
+			break
 		}
 
 	}
@@ -241,17 +246,19 @@ func main() {
 
 	// data := openAndReadFile("peace.go")
 
-	input := []rune(`The quick 
-	brown`)
+	input := []rune(`Thequickbrown`)
 	// println("len(input)=", len(input))
 	pt := NewPT(input)
-	pt.AppendString(`//EXTRA
-	asfjk
+	pt.InsertStringAt(0, "aflsj")
+	// 	pt.AppendString(`//EXTRA
+	// 	asfjk
 
-	// data to have at the bottom test`)
+	// 	// data to have at the bottom test`)
 
-	pt.InsertStringAt(6, `Here is the new 
-data`)
+	// 	pt.InsertStringAt(6, `Here is the new
+	// data`)
+
+	// 	pt.AppendString("\n||||||||||||||||||\n")
 
 	// pt.InsertStringAt(28, `Here is the new afjslkjasflkjasflk
 	// afskjfaskasfljfa
