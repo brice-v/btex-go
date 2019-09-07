@@ -158,25 +158,6 @@ func (PT *PieceTable) DeleteStringAt(start, length int) error {
 			PT.nodes.InsertBefore(nodeRight, e)
 			PT.deleteNode(e)
 			return nil
-		} else if totLen == offset {
-			if start == n.start {
-				println("The same")
-			}
-			nodeLeftStart := n.start
-			nodeLeftLength := n.length - 1
-			nodeLeftBuf := []rune(PT.buffer[n.typ][nodeLeftStart : nodeLeftStart+nodeLeftLength])
-			nodeLeftLos := getLineOffsets(nodeLeftBuf)
-
-			nodeLeft := &Node{
-				typ:         n.typ,
-				start:       nodeLeftStart,
-				length:      nodeLeftLength,
-				lineOffsets: nodeLeftLos,
-			}
-			PT.nodes.InsertBefore(nodeLeft, e)
-
-			PT.deleteNode(e)
-			return nil
 		}
 
 	}
@@ -359,10 +340,11 @@ func main() {
 
 	// data := openAndReadFile("unicode.txt")
 
-	data := []rune(`ThequiΣckbrown`)
+	data := []rune(`ThequiΣckbrown
+`)
 	// println("len(input)=", len(input))
 	pt := NewPT(data)
-	pt.DeleteStringAt(1, 1)
+	pt.DeleteStringAt(0, 0)
 
 	// pt.AppendString(`//EXTRA
 	// 	asfjk
