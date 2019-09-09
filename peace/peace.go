@@ -111,7 +111,7 @@ func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 		if !ok {
 			log.Fatal("Found non Node when trying to unwrap in deletestringat")
 		}
-		if n.typ == Sentinel {
+		if n.typ == Sentinel || n.typ == Remove {
 			continue
 		}
 
@@ -129,7 +129,7 @@ func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 			// offset + length is still more than the current total length
 			n.typ = Remove
 			continue
-		} else if totLen > offset && endLen < totLen && nodeStartPoint < offset {
+		} else if totLen > offset && endLen < totLen && nodeStartPoint <= offset {
 			// this is just the node that we are starting on when deleting
 
 			//in this case we remove the node were in, and make sure to add a new node if necessary
@@ -423,7 +423,7 @@ func main() {
 	// need to get this working
 	// pt.DeleteStringAt(7, 1)
 	// need to get this working
-	pt.DeleteStringAt(0, 8)
+	pt.DeleteStringAt(0, 3)
 	// pt.DeleteStringAt(3, 8)
 	// need to get this working
 	// pt.DeleteStringAt(7, 1)
