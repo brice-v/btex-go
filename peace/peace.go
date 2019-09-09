@@ -39,7 +39,10 @@ func (n *Node) String() (result string) {
 	} else if n.typ == Added {
 		result = fmt.Sprintf("{NodeType: Added, start: %d, length: %d, lineOffsets: %v}}",
 			n.start, n.length, n.lineOffsets)
-	} else {
+	} else if n.typ == Remove {
+		result = fmt.Sprintf("{NodeType: Remove, start: %d, length: %d, lineOffsets: %v}}",
+			n.start, n.length, n.lineOffsets)
+	} else if n.typ == Sentinel {
 		result = fmt.Sprintf("{NodeType: Sentinel, start: %d, length: %d, lineOffsets: %v}}",
 			n.start, n.length, n.lineOffsets)
 	}
@@ -53,16 +56,6 @@ type Node struct {
 	length int
 
 	lineOffsets []int
-}
-
-func (PT *PieceTable) cleanUpNodes() {
-	for e := PT.nodes.Front(); e != nil; e = e.Next() {
-		if this, ok := e.Value.(*Node); ok {
-			if this.typ == Remove {
-				PT.nodes.Remove(e)
-			}
-		}
-	}
 }
 
 func (PT *PieceTable) deleteNode(e *list.Element) {
@@ -87,6 +80,19 @@ func getLineOffsets(buf []rune) []int {
 	return bucket
 }
 
+//CreateNode generates a new node
+func (PT *PieceTable) CreateNode(typ NodeType, start, length int) *Node {
+	buf := []rune(PT.buffer[typ][start : start+length])
+	los := getLineOffsets(buf)
+
+	return &Node{
+		typ:         typ,
+		start:       start,
+		length:      length,
+		lineOffsets: los,
+	}
+}
+
 // ------------------------------------------------------------------------
 //
 // REMOVE FUNCTIONS
@@ -105,6 +111,8 @@ func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 	//totLen records the total length of the visible buffer as we continue through
 	totLen := 0
 
+	// defer PT.cleanUpNodes()
+
 	//first have to find which node this starts in
 	for e := PT.nodes.Front(); e != nil; e = e.Next() {
 		n, ok := e.Value.(*Node)
@@ -122,7 +130,7 @@ func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 		nodeStartPoint := totLen - n.length
 
 		// still need to keep going if we arent at the offset yet
-		if offset > totLen {
+		if offset > totLen || nodeStartPoint > endLen {
 			continue
 		} else if totLen > offset && endLen >= totLen {
 			// delete the node entirely if we are beyond the start of the offset and the
@@ -130,8 +138,6 @@ func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 			n.typ = Remove
 			continue
 		} else if totLen > offset && endLen < totLen && nodeStartPoint <= offset {
-			// this is just the node that we are starting on when deleting
-
 			//in this case we remove the node were in, and make sure to add a new node if necessary
 			// for the remainder of end offset to the totlen
 
@@ -151,15 +157,8 @@ func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 
 			nodeLeftStart := n.start
 			nodeLeftLength := distanceFromLeftToOffset
-			nodeLeftBuf := []rune(PT.buffer[n.typ][nodeLeftStart : nodeLeftStart+nodeLeftLength])
-			nodeLeftLos := getLineOffsets(nodeLeftBuf)
+			nodeLeft := PT.CreateNode(n.typ, nodeLeftStart, nodeLeftLength)
 
-			nodeLeft := &Node{
-				typ:         n.typ,
-				start:       nodeLeftStart,
-				length:      nodeLeftLength,
-				lineOffsets: nodeLeftLos,
-			}
 			// only insert the left node if it has a length
 			if nodeLeft.length != 0 {
 				PT.nodes.InsertBefore(nodeLeft, e)
@@ -167,18 +166,10 @@ func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 
 			nodeRightStart := distanceFromLeftToOffset + length
 			nodeRightLength := n.length - nodeRightStart
-			nodeRightBuf := []rune(PT.buffer[n.typ][nodeRightStart : nodeRightStart+nodeRightLength])
-			nodeRightLos := getLineOffsets(nodeRightBuf)
-
-			nodeRight := &Node{
-				typ:         n.typ,
-				start:       nodeRightStart,
-				length:      nodeRightLength,
-				lineOffsets: nodeRightLos,
-			}
+			nodeRight := PT.CreateNode(n.typ, nodeRightStart, nodeRightLength)
 			PT.nodes.InsertBefore(nodeRight, e)
-			PT.deleteNode(e)
-			return nil
+			n.typ = Remove
+			break
 		} else if totLen > offset && endLen > totLen && nodeStartPoint < offset {
 			// this is only node left
 			distanceToRightNodeInChars := totLen - offset
@@ -186,15 +177,7 @@ func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 
 			nodeLeftStart := n.start
 			nodeLeftLength := distanceFromLeftToOffset
-			nodeLeftBuf := []rune(PT.buffer[n.typ][nodeLeftStart : nodeLeftStart+nodeLeftLength])
-			nodeLeftLos := getLineOffsets(nodeLeftBuf)
-
-			nodeLeft := &Node{
-				typ:         n.typ,
-				start:       nodeLeftStart,
-				length:      nodeLeftLength,
-				lineOffsets: nodeLeftLos,
-			}
+			nodeLeft := PT.CreateNode(n.typ, nodeLeftStart, nodeLeftLength)
 			// only insert the left node if it has a length
 			if nodeLeft.length != 0 {
 				PT.nodes.InsertBefore(nodeLeft, e)
@@ -203,41 +186,53 @@ func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 		} else if totLen > offset && endLen < totLen && nodeStartPoint > offset {
 			// this is only the right node
 
-			nodeRightStart := n.start + (totLen - endLen)
-			nodeRightLength := n.length - nodeRightStart
-			nodeRightBuf := []rune(PT.buffer[n.typ][nodeRightStart : nodeRightStart+nodeRightLength])
-			nodeRightLos := getLineOffsets(nodeRightBuf)
-
-			nodeRight := &Node{
-				typ:         n.typ,
-				start:       nodeRightStart,
-				length:      nodeRightLength,
-				lineOffsets: nodeRightLos,
-			}
+			nodeRightStart := (n.length - (totLen - endLen)) + n.start
+			nodeRightLength := n.length - (nodeRightStart - n.start)
+			nodeRight := PT.CreateNode(n.typ, nodeRightStart, nodeRightLength)
 			PT.nodes.InsertBefore(nodeRight, e)
-			PT.deleteNode(e)
-			return nil
+			n.typ = Remove
+			break
 		} else if totLen == offset && length == 1 {
 			nodeLeftStart := n.start
 			nodeLeftLength := totLen - 1
-			nodeLeftBuf := []rune(PT.buffer[n.typ][nodeLeftStart : nodeLeftStart+nodeLeftLength])
-			nodeLeftLos := getLineOffsets(nodeLeftBuf)
-
-			nodeLeft := &Node{
-				typ:         n.typ,
-				start:       nodeLeftStart,
-				length:      nodeLeftLength,
-				lineOffsets: nodeLeftLos,
-			}
+			nodeLeft := PT.CreateNode(n.typ, nodeLeftStart, nodeLeftLength)
 			PT.nodes.InsertBefore(nodeLeft, e)
-			PT.deleteNode(e)
-			return nil
+			n.typ = Remove
+			break
 		} else {
 			return fmt.Errorf("Case not handled totlen=%v, offset=%v", totLen, offset)
 		}
 	}
-	PT.cleanUpNodes()
+
+	// cleanup all the removes
+	for PT.anyRemoveLeft() {
+		for e := PT.nodes.Front(); e != nil; e = e.Next() {
+			n, ok := e.Value.(*Node)
+			if !ok {
+				log.Fatal("Found non Node when trying to unwrap in deletestringat")
+			}
+			if n.typ == Remove {
+				PT.deleteNode(e)
+				break
+			}
+		}
+	}
+
 	return nil
+}
+
+func (PT *PieceTable) anyRemoveLeft() bool {
+	for e := PT.nodes.Front(); e != nil; e = e.Next() {
+		n, ok := e.Value.(*Node)
+		if !ok {
+			log.Fatal("Found non Node when trying to unwrap in deletestringat")
+		}
+		if n.typ == Remove {
+			return true
+		}
+
+	}
+	return false
 }
 
 // ------------------------------------------------------------------------
@@ -423,27 +418,11 @@ func main() {
 	// need to get this working
 	// pt.DeleteStringAt(7, 1)
 	// need to get this working
-	pt.DeleteStringAt(0, 3)
+	pt.DeleteStringAt(3, 10)
 	// pt.DeleteStringAt(3, 8)
 	// need to get this working
 	// pt.DeleteStringAt(7, 1)
 
-	// fmt.Println(result)
-
-	// pt.AppendString(`//EXTRA
-	// 	asfjk
-
-	// 	// data to have at the bottom test`)
-
-	// 	pt.InsertStringAt(6, `Here is the new
-	// data`)
-
-	// 	pt.AppendString("\n||||||||||||||||||\n")
-
-	// pt.InsertStringAt(28, `Here is the new afjslkjasflkjasflk
-	// afskjfaskasfljfa
-	// asfjasfkjfkasj
-	// data`)
 	for e := pt.nodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*Node)
 		fmt.Println(n)
