@@ -116,7 +116,7 @@ func (PT *PieceTable) cleanupRemoveNodes() {
 }
 
 // DeleteStringAt will delete the string in the nodes from
-// start is the char the delete starts
+// offset is the char the delete starts
 // length is the length of the delete. to delete only 1 char it will be a 0 length
 // EXAMPLE ---------------------------------------------------------------------------
 // DeleteStringAt(start=4,length=4)
