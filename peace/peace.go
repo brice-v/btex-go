@@ -98,9 +98,36 @@ func (PT *PieceTable) CreateNode(typ NodeType, start, length int) *Node {
 // REMOVE FUNCTIONS
 //
 
+func (PT *PieceTable) cleanupRemoveNodes() {
+	// this is probably really slow but i couldnt make a better way
+	// cleanup all the removes
+	for PT.anyRemoveLeft() {
+		for e := PT.nodes.Front(); e != nil; e = e.Next() {
+			n, ok := e.Value.(*Node)
+			if !ok {
+				log.Fatal("Found non Node when trying to unwrap in deletestringat")
+			}
+			if n.typ == Remove {
+				PT.deleteNode(e)
+				break
+			}
+		}
+	}
+}
+
 // DeleteStringAt will delete the string in the nodes from
 // start is the char the delete starts
 // length is the length of the delete. to delete only 1 char it will be a 0 length
+// EXAMPLE ---------------------------------------------------------------------------
+// DeleteStringAt(start=4,length=4)
+//
+// Node: Start=0, Length=10
+// ]<->[ 1,2,3,4,5,6,7,8,9,10]<->[..
+//
+// NodeLeft: Start=currentNodeStart, length=start-currentNodeStart
+// NodeRight: Start=currentNodeStart+length, length=currentNodeLength-length
+// ]<->[ 1,2,3]<->[8,9,10]<->[..
+// ------------------------------------------------------------------------------------
 func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 	// return error when trying to use negative values
 	if offset < 0 || length < 0 {
@@ -111,7 +138,8 @@ func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 	//totLen records the total length of the visible buffer as we continue through
 	totLen := 0
 
-	// defer PT.cleanUpNodes()
+	// cleanup when were done with the initial loop
+	defer PT.cleanupRemoveNodes()
 
 	//first have to find which node this starts in
 	for e := PT.nodes.Front(); e != nil; e = e.Next() {
@@ -129,6 +157,9 @@ func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 		// this is the nodes start point in the documents visible buffer
 		nodeStartPoint := totLen - n.length
 
+		distanceToRightNodeInChars := totLen - offset
+		distanceFromLeftToOffset := n.length - distanceToRightNodeInChars
+
 		// still need to keep going if we arent at the offset yet
 		if offset > totLen || nodeStartPoint > endLen {
 			continue
@@ -140,27 +171,11 @@ func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 		} else if totLen > offset && endLen < totLen && nodeStartPoint <= offset {
 			//in this case we remove the node were in, and make sure to add a new node if necessary
 			// for the remainder of end offset to the totlen
-
-			// EXAMPLE ---------------------------------------------------------------------------
-			// DeleteStringAt(start=4,length=4)
-			//
-			// Node: Start=0, Length=10
-			// ]<->[ 1,2,3,4,5,6,7,8,9,10]<->[..
-			//
-			// NodeLeft: Start=currentNodeStart, length=start-currentNodeStart
-			// NodeRight: Start=currentNodeStart+length, length=currentNodeLength-length
-			// ]<->[ 1,2,3]<->[8,9,10]<->[..
-			// ------------------------------------------------------------------------------------
-
-			distanceToRightNodeInChars := totLen - offset
-			distanceFromLeftToOffset := n.length - distanceToRightNodeInChars
-
-			nodeLeftStart := n.start
-			nodeLeftLength := distanceFromLeftToOffset
-			nodeLeft := PT.CreateNode(n.typ, nodeLeftStart, nodeLeftLength)
+			nodeLeft := PT.CreateNode(n.typ, n.start, distanceFromLeftToOffset)
 
 			// only insert the left node if it has a length
-			if nodeLeft.length != 0 {
+			// ignore negatives just in case?:
+			if nodeLeft.length > 0 {
 				PT.nodes.InsertBefore(nodeLeft, e)
 			}
 
@@ -172,12 +187,7 @@ func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 			break
 		} else if totLen > offset && endLen > totLen && nodeStartPoint < offset {
 			// this is only node left
-			distanceToRightNodeInChars := totLen - offset
-			distanceFromLeftToOffset := n.length - distanceToRightNodeInChars
-
-			nodeLeftStart := n.start
-			nodeLeftLength := distanceFromLeftToOffset
-			nodeLeft := PT.CreateNode(n.typ, nodeLeftStart, nodeLeftLength)
+			nodeLeft := PT.CreateNode(n.typ, n.start, distanceFromLeftToOffset)
 			// only insert the left node if it has a length
 			if nodeLeft.length != 0 {
 				PT.nodes.InsertBefore(nodeLeft, e)
@@ -185,17 +195,16 @@ func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 			}
 		} else if totLen > offset && endLen < totLen && nodeStartPoint > offset {
 			// this is only the right node
-
 			nodeRightStart := (n.length - (totLen - endLen)) + n.start
 			nodeRightLength := n.length - (nodeRightStart - n.start)
+
 			nodeRight := PT.CreateNode(n.typ, nodeRightStart, nodeRightLength)
 			PT.nodes.InsertBefore(nodeRight, e)
 			n.typ = Remove
 			break
 		} else if totLen == offset && length == 1 {
-			nodeLeftStart := n.start
 			nodeLeftLength := totLen - 1
-			nodeLeft := PT.CreateNode(n.typ, nodeLeftStart, nodeLeftLength)
+			nodeLeft := PT.CreateNode(n.typ, n.start, nodeLeftLength)
 			PT.nodes.InsertBefore(nodeLeft, e)
 			n.typ = Remove
 			break
@@ -203,21 +212,6 @@ func (PT *PieceTable) DeleteStringAt(offset, length int) error {
 			return fmt.Errorf("Case not handled totlen=%v, offset=%v", totLen, offset)
 		}
 	}
-
-	// cleanup all the removes
-	for PT.anyRemoveLeft() {
-		for e := PT.nodes.Front(); e != nil; e = e.Next() {
-			n, ok := e.Value.(*Node)
-			if !ok {
-				log.Fatal("Found non Node when trying to unwrap in deletestringat")
-			}
-			if n.typ == Remove {
-				PT.deleteNode(e)
-				break
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -414,11 +408,12 @@ func main() {
 	data := []rune(`Thequi Σckbrown`)
 	// println("len(input)=", len(input))
 	pt := NewPT(data)
-	pt.InsertStringAt(6, "AAA")
+	pt.InsertStringAt(6, "AAABBB")
+	pt.InsertStringAt(10, "CCC")
 	// need to get this working
-	// pt.DeleteStringAt(7, 1)
+	pt.DeleteStringAt(0, 12)
 	// need to get this working
-	pt.DeleteStringAt(3, 10)
+	// pt.DeleteStringAt(3, 10)
 	// pt.DeleteStringAt(3, 8)
 	// need to get this working
 	// pt.DeleteStringAt(7, 1)
