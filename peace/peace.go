@@ -52,10 +52,10 @@ func (n *Node) String() (result string) {
 // Node is the element in the list that contains some metadata for the contents and the operation
 type Node struct {
 	typ    NodeType
-	start  int
-	length int
+	start  uint
+	length uint
 
-	lineOffsets []int
+	lineOffsets []uint
 }
 
 func (PT *PieceTable) deleteNode(e *list.Element) {
@@ -70,18 +70,18 @@ func (PT *PieceTable) deleteNode(e *list.Element) {
 	}
 }
 
-func getLineOffsets(buf []rune) []int {
-	var bucket []int
+func getLineOffsets(buf []rune) []uint {
+	var bucket []uint
 	for i := 0; i < len(buf); i++ {
 		if buf[i] == '\n' {
-			bucket = append(bucket, i)
+			bucket = append(bucket, uint(i))
 		}
 	}
 	return bucket
 }
 
 //CreateNode generates a new node
-func (PT *PieceTable) CreateNode(typ NodeType, start, length int) *Node {
+func (PT *PieceTable) CreateNode(typ NodeType, start, length uint) *Node {
 	buf := []rune(PT.buffer[typ][start : start+length])
 	los := getLineOffsets(buf)
 
@@ -128,15 +128,9 @@ func (PT *PieceTable) cleanupRemoveNodes() {
 // NodeRight: Start=currentNodeStart+length, length=currentNodeLength-length
 // ]<->[ 1,2,3]<->[8,9,10]<->[..
 // ------------------------------------------------------------------------------------
-func (PT *PieceTable) DeleteStringAt(offset, length int) error {
-	// return error when trying to use negative values
-	if offset < 0 || length < 0 {
-		return fmt.Errorf("Offset or Length is less than 0. offset=%d, length=%d",
-			offset, length)
-	}
-
+func (PT *PieceTable) DeleteStringAt(offset, length uint) error {
 	//totLen records the total length of the visible buffer as we continue through
-	totLen := 0
+	totLen := uint(0)
 
 	// cleanup when were done with the initial loop
 	defer PT.cleanupRemoveNodes()
@@ -238,7 +232,7 @@ func (PT *PieceTable) anyRemoveLeft() bool {
 // this is strictly for append
 // just syntactic
 func (PT *PieceTable) AppendString(data string) {
-	PT.InsertStringAt(len(PT.buffer[Added])+len(PT.buffer[Original]), data)
+	PT.InsertStringAt(uint(len(PT.buffer[Added])+len(PT.buffer[Original])), data)
 }
 
 //InsertStringAt will insert a string into the piece table at an offset
@@ -246,9 +240,9 @@ func (PT *PieceTable) AppendString(data string) {
 // the visible buffers.
 // data is the string to (append to the add buffer) be added to the
 // PieceTable
-func (PT *PieceTable) InsertStringAt(offset int, data string) bool {
+func (PT *PieceTable) InsertStringAt(offset uint, data string) bool {
 	//record where we are in the document pretty much
-	totLen := 0
+	totLen := uint(0)
 	// -------------------------------------------------------------
 	// This is the new node that we are adding to the `Added` buffer
 	// because this new Node in the dll is getting inserted at an offset
@@ -260,9 +254,9 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) bool {
 	nodeMiddleLos := getLineOffsets([]rune(data))
 	//the start of the new node is the current length of the `Added`
 	// buffer because that is where this new data will be visible from.
-	nodeMiddleStart := len(PT.buffer[Added])
+	nodeMiddleStart := uint(len(PT.buffer[Added]))
 	// this is the length of the data we are passing in
-	nodeMiddleLength := len(data)
+	nodeMiddleLength := uint(len(data))
 	// append the rest of the string to the add buffer
 	PT.buffer[Added] = append(PT.buffer[Added], []rune(data)...)
 	newNodeMiddle := &Node{
@@ -344,10 +338,19 @@ func (PT *PieceTable) InsertStringAt(offset int, data string) bool {
 }
 
 // ------------------------------------------------------------------------
+//
+// GET FUNCTIONS
+//
+
+// func (PT *PieceTable) GetLineStr(lineNo uint) string {
+
+// }
+
+// ------------------------------------------------------------------------
 
 func newEmptyList() *list.List {
-	hn := &Node{typ: Sentinel, start: 0, length: 0, lineOffsets: []int{}}
-	tn := &Node{typ: Sentinel, start: 0, length: 0, lineOffsets: []int{}}
+	hn := &Node{typ: Sentinel, start: 0, length: 0, lineOffsets: []uint{}}
+	tn := &Node{typ: Sentinel, start: 0, length: 0, lineOffsets: []uint{}}
 	l := list.New()
 	l.PushBack(tn)
 	l.PushBack(hn)
@@ -358,7 +361,7 @@ func newEmptyList() *list.List {
 // new function for the optional buffer (this would be starting a new buffer for instance)
 func NewPT(optBuf []rune) *PieceTable {
 	if optBuf != nil {
-		optBufLen := len(optBuf)
+		optBufLen := uint(len(optBuf))
 		bufs := map[NodeType][]rune{Original: optBuf, Added: []rune("")}
 		pt := &PieceTable{buffer: bufs, nodes: newEmptyList()}
 		//calculate lineoffsets
