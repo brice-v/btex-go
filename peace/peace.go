@@ -342,9 +342,45 @@ func (PT *PieceTable) InsertStringAt(offset uint, data string) bool {
 // GET FUNCTIONS
 //
 
-// func (PT *PieceTable) GetLineStr(lineNo uint) string {
+func (PT *PieceTable) GetLineStr(lineNo uint) string {
+	currentLine := uint(1)
+	buf := make([]rune, 100)
+	// startChar := uint(0)
+	// endChar := uint(0)
+	for e := PT.nodes.Front(); e != nil; e = e.Next() {
+		n, ok := e.Value.(*Node)
+		if !ok {
+			return ""
+		}
+		if n.typ == Sentinel {
+			continue
+		}
 
-// }
+		// first lets handle if its the first line and then deal with the rest
+		// so for the first line we look to see if the first node has any line offsets
+		// if not we grab everythin (n.start: n.start+n.length) as a string and
+		// continue to the next node
+		// if there is a line offset here then we use upuntil the first lineoffset[0]-1
+		// and append on (n.start: n.start+offset)
+		for _, char := range PT.buffer[n.typ][n.start : n.start+n.length] {
+			if char == '\n' {
+				currentLine++
+				if lineNo+1 == currentLine {
+					break
+				}
+				buf = nil
+			} else {
+				buf = append(buf, char)
+			}
+		}
+		if currentLine == lineNo || currentLine == lineNo+1 {
+			// removing new line
+			return string(buf[:len(buf)-1])
+		}
+
+	}
+	return ""
+}
 
 // ------------------------------------------------------------------------
 
@@ -408,13 +444,17 @@ func main() {
 
 	// data := openAndReadFile("unicode.txt")
 
-	data := []rune(`Thequi Σckbrown`)
+	data := []rune(`Thequi Σc
+	kasdfroasfafswn
+	
+	asdfdas`)
 	// println("len(input)=", len(input))
 	pt := NewPT(data)
 	pt.InsertStringAt(6, "AAABBB")
-	pt.InsertStringAt(10, "CCC")
+	// pt.InsertStringAt(10, "CCC")
 	// need to get this working
-	pt.DeleteStringAt(0, 12)
+	// pt.DeleteStringAt(0, 12)
+	println(pt.GetLineStr(3))
 	// need to get this working
 	// pt.DeleteStringAt(3, 10)
 	// pt.DeleteStringAt(3, 8)
@@ -425,6 +465,6 @@ func main() {
 		n := e.Value.(*Node)
 		fmt.Println(n)
 	}
-	cat(pt)
+	// cat(pt)
 
 }
