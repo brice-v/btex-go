@@ -347,7 +347,6 @@ func (PT *PieceTable) InsertStringAt(offset uint, data string) bool {
 func (PT *PieceTable) GetLineStr(lineNo uint) string {
 	currentLine := uint(1)
 	totLines := uint(0)
-	var prevLineLength uint
 
 	buf := make([]rune, 100)
 
@@ -361,8 +360,19 @@ func (PT *PieceTable) GetLineStr(lineNo uint) string {
 		if n.typ == Sentinel {
 			continue
 		}
-		prevLineLength = totLines
+		nextNode, ok := e.Next().Value.(*Node)
+		if !ok {
+			continue
+		}
+
+		prevLines := totLines
+		if nextNode.typ == Sentinel {
+			totLines++
+		}
+
+		// add all the lines that are in a Node
 		totLines += uint(len(n.lineOffsets))
+		println("totlines", totLines)
 
 		//lineNo is greater than the total lines were at so just continue to the next node
 		if lineNo > totLines && totLines > 0 {
@@ -372,14 +382,29 @@ func (PT *PieceTable) GetLineStr(lineNo uint) string {
 			// length and nodetype
 			currentBuf := PT.buffer[n.typ][n.start : n.start+n.length]
 			buf = append(buf, currentBuf...)
-		} else if lineNo < totLines {
-			// the line that were looking for is somewhere in here
-
-			for i, lineOffset := range n.lineOffsets {
-				if currentLine == prevLineLength+uint(i)+1 {
-					buf = append(buf, PT.buffer[n.typ][n.start:n.start+lineOffset]...)
+			continue
+		} else if lineNo <= totLines {
+			start := n.start
+			end := n.start + n.length
+			for i, _ := range n.lineOffsets {
+				currentLine = prevLines + uint(i) + 1
+				end = start + n.lineOffsets[i]
+				if i > 0 {
+					start = n.start + n.lineOffsets[i-1]
+				}
+				println("start = ", start)
+				println("end = ", end)
+				println("currentLine = ", currentLine)
+				if lineNo == currentLine {
+					// figure out what to do here
+					// startpoint =
+					// endpoint =
+					data := PT.buffer[n.typ][start : end+1]
+					buf = append(buf, data...)
 					return string(buf)
 				}
+				// if len(n.lineOffsets)
+				buf = nil
 			}
 		}
 
@@ -450,26 +475,25 @@ func main() {
 	// data := openAndReadFile("unicode.txt")
 
 	data := []rune(`Thequi Σc
-	kasdfroasfafswn
-
-	asdfdas`)
+	kasdfroasfafswnasdf
+	das`)
 	// println("len(input)=", len(input))
 	pt := NewPT(data)
-	pt.InsertStringAt(6, "AAABBB")
+	// pt.InsertStringAt(6, "AAABBB")
 	// pt.InsertStringAt(10, "CCC")
 	// need to get this working
 	// pt.DeleteStringAt(0, 12)
-	println(pt.GetLineStr(1))
+	println(pt.GetLineStr(2))
 	// need to get this working
 	// pt.DeleteStringAt(3, 10)
 	// pt.DeleteStringAt(3, 8)
 	// need to get this working
 	// pt.DeleteStringAt(7, 1)
 
-	// for e := pt.nodes.Front(); e != nil; e = e.Next() {
-	// 	n := e.Value.(*Node)
-	// 	fmt.Println(n)
-	// }
+	for e := pt.nodes.Front(); e != nil; e = e.Next() {
+		n := e.Value.(*Node)
+		fmt.Println(n)
+	}
 	// cat(pt)
 
 }
