@@ -372,7 +372,6 @@ func (PT *PieceTable) GetLineStr(lineNo uint) string {
 
 		// add all the lines that are in a Node
 		totLines += uint(len(n.lineOffsets))
-		println("totlines", totLines)
 
 		//lineNo is greater than the total lines were at so just continue to the next node
 		if lineNo > totLines && totLines > 0 {
@@ -386,15 +385,15 @@ func (PT *PieceTable) GetLineStr(lineNo uint) string {
 		} else if lineNo <= totLines {
 			start := n.start
 			end := n.start + n.length
-			for i, _ := range n.lineOffsets {
+			for i := range n.lineOffsets {
 				currentLine = prevLines + uint(i) + 1
 				end = start + n.lineOffsets[i]
 				if i > 0 {
 					start = n.start + n.lineOffsets[i-1]
 				}
-				println("start = ", start)
-				println("end = ", end)
-				println("currentLine = ", currentLine)
+				// println("start = ", start)
+				// println("end = ", end)
+				// println("currentLine = ", currentLine)
 				if lineNo == currentLine {
 					// figure out what to do here
 					// startpoint =
@@ -403,8 +402,13 @@ func (PT *PieceTable) GetLineStr(lineNo uint) string {
 					buf = append(buf, data...)
 					return string(buf)
 				}
-				// if len(n.lineOffsets)
 				buf = nil
+				if i == len(n.lineOffsets)-1 {
+					data := PT.buffer[n.typ][n.lineOffsets[i]:]
+					buf = append(buf, data...)
+					return string(buf)
+				}
+
 			}
 		}
 
@@ -483,7 +487,7 @@ func main() {
 	// pt.InsertStringAt(10, "CCC")
 	// need to get this working
 	// pt.DeleteStringAt(0, 12)
-	println(pt.GetLineStr(2))
+	println(pt.GetLineStr(1))
 	// need to get this working
 	// pt.DeleteStringAt(3, 10)
 	// pt.DeleteStringAt(3, 8)
