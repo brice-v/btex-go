@@ -21,7 +21,7 @@ const (
 //
 
 type editorRow struct {
-	length int
+	length uint
 	chars  []rune
 }
 
@@ -143,7 +143,7 @@ func getRows(data []byte) []editorRow {
 	ers := []editorRow{}
 	buf := []byte{}
 
-	length := 0
+	length := uint(0)
 	indx := 0
 	for _, char := range data {
 		buf = append(buf, char)

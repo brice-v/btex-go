@@ -1,4 +1,4 @@
-package main
+package peace
 
 // an attempt at making a piecetable/piecemap in go but right now im using list(doubly) from container/list
 // and honestly a bunch of other random stuff but im ready to start recording my eventual implementation
@@ -68,6 +68,19 @@ func (PT *PieceTable) deleteNode(e *list.Element) {
 			return
 		}
 	}
+}
+
+//Length returns the length of the piecetable's visble buffers
+func (PT *PieceTable) Length() (totlength uint) {
+
+	for e := PT.nodes.Front(); e != nil; e = e.Next() {
+		n, ok := e.Value.(*Node)
+		if !ok {
+			log.Fatal("Found non Node when trying to unwrap in deletestringat")
+		}
+		totlength += n.length
+	}
+	return
 }
 
 func getLineOffsets(buf []rune) []uint {
@@ -483,34 +496,34 @@ func catn(pt *PieceTable) {
 	}
 }
 
-func main() {
+// func main() {
 
-	// data := openAndReadFile("unicode.txt")
+// 	// data := openAndReadFile("unicode.txt")
 
-	data := []rune(`Thequi Σc
-kasdfr
-oas
-fafswnasdf
-dasfasfasfas`)
-	// println("len(input)=", len(input))
-	pt := NewPT(data)
-	// pt.InsertStringAt(6, "AAABBB")
-	// pt.InsertStringAt(10, "CCC")
-	// // need to get this working
-	// pt.DeleteStringAt(0, 12)
-	result, err := pt.GetLineStr(2)
-	if err != nil {
-		println(err)
-	}
-	println(result)
-	// need to get this working
-	// pt.DeleteStringAt(3, 10)
-	// pt.DeleteStringAt(3, 8)
-	// need to get this working
-	// pt.DeleteStringAt(7, 1)
+// 	data := []rune(`Thequi Σc
+// kasdfr
+// oas
+// fafswnasdf
+// dasfasfasfas`)
+// 	// println("len(input)=", len(input))
+// 	pt := NewPT(data)
+// 	// pt.InsertStringAt(6, "AAABBB")
+// 	// pt.InsertStringAt(10, "CCC")
+// 	// // need to get this working
+// 	// pt.DeleteStringAt(0, 12)
+// 	result, err := pt.GetLineStr(2)
+// 	if err != nil {
+// 		println(err)
+// 	}
+// 	println(result)
+// 	// need to get this working
+// 	// pt.DeleteStringAt(3, 10)
+// 	// pt.DeleteStringAt(3, 8)
+// 	// need to get this working
+// 	// pt.DeleteStringAt(7, 1)
 
-	catn(pt)
+// 	catn(pt)
 
-	// cat(pt)
+// 	// cat(pt)
 
-}
+// }
