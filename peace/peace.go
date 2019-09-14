@@ -351,8 +351,6 @@ func (PT *PieceTable) GetLineStr(lineNo uint) (string, error) {
 
 	buf := make([]rune, 100)
 
-	// startChar := uint(0)
-	// endChar := uint(0)
 	for e := PT.nodes.Front(); e != nil; e = e.Next() {
 		n, ok := e.Value.(*Node)
 		if !ok {
@@ -394,13 +392,19 @@ func (PT *PieceTable) GetLineStr(lineNo uint) (string, error) {
 				}
 
 				if lineNo == currentLine {
-					data := PT.buffer[n.typ][start : end+1]
+					if start > 0 {
+						start++
+					}
+					if end < uint(len(PT.buffer[n.typ])) {
+						end++
+					}
+					data := PT.buffer[n.typ][start:end]
 					buf = append(buf, data...)
 					return string(buf), nil
 				}
 				buf = nil
 				if i == len(n.lineOffsets)-1 {
-					data := PT.buffer[n.typ][n.lineOffsets[i]:]
+					data := PT.buffer[n.typ][end+1:]
 					buf = append(buf, data...)
 					return string(buf), nil
 				}
@@ -453,6 +457,7 @@ func openAndReadFile(f string) []rune {
 	return []rune(string(data))
 }
 
+//catenate
 func cat(pt *PieceTable) {
 	for e := pt.nodes.Front(); e != nil; e = e.Next() {
 		n, ok := e.Value.(*Node)
@@ -470,20 +475,29 @@ func cat(pt *PieceTable) {
 	}
 }
 
+//catn - catenate nodes
+func catn(pt *PieceTable) {
+	for e := pt.nodes.Front(); e != nil; e = e.Next() {
+		n := e.Value.(*Node)
+		fmt.Println(n)
+	}
+}
+
 func main() {
 
 	// data := openAndReadFile("unicode.txt")
 
 	data := []rune(`Thequi Σc
-	kasdfroas
-	fafswnasdf
-	das`)
+kasdfr
+oas
+fafswnasdf
+dasfasfasfas`)
 	// println("len(input)=", len(input))
 	pt := NewPT(data)
-	pt.InsertStringAt(6, "AAABBB")
-	pt.InsertStringAt(10, "CCC")
-	// need to get this working
-	pt.DeleteStringAt(0, 12)
+	// pt.InsertStringAt(6, "AAABBB")
+	// pt.InsertStringAt(10, "CCC")
+	// // need to get this working
+	// pt.DeleteStringAt(0, 12)
 	result, err := pt.GetLineStr(2)
 	if err != nil {
 		println(err)
@@ -495,10 +509,8 @@ func main() {
 	// need to get this working
 	// pt.DeleteStringAt(7, 1)
 
-	for e := pt.nodes.Front(); e != nil; e = e.Next() {
-		n := e.Value.(*Node)
-		fmt.Println(n)
-	}
-	cat(pt)
+	catn(pt)
+
+	// cat(pt)
 
 }
