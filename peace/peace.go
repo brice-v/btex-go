@@ -93,8 +93,8 @@ func getLineOffsets(buf []rune) []uint {
 	return bucket
 }
 
-//CreateNode generates a new node
-func (PT *PieceTable) CreateNode(typ NodeType, start, length uint) *Node {
+//createNode generates a new node
+func (PT *PieceTable) createNode(typ NodeType, start, length uint) *Node {
 	buf := []rune(PT.buffer[typ][start : start+length])
 	los := getLineOffsets(buf)
 
@@ -178,7 +178,7 @@ func (PT *PieceTable) DeleteStringAt(offset, length uint) error {
 		} else if totLen > offset && endLen < totLen && nodeStartPoint <= offset {
 			//in this case we remove the node were in, and make sure to add a new node if necessary
 			// for the remainder of end offset to the totlen
-			nodeLeft := PT.CreateNode(n.typ, n.start, distanceFromLeftToOffset)
+			nodeLeft := PT.createNode(n.typ, n.start, distanceFromLeftToOffset)
 
 			// only insert the left node if it has a length
 			// ignore negatives just in case?:
@@ -188,13 +188,13 @@ func (PT *PieceTable) DeleteStringAt(offset, length uint) error {
 
 			nodeRightStart := distanceFromLeftToOffset + length
 			nodeRightLength := n.length - nodeRightStart
-			nodeRight := PT.CreateNode(n.typ, nodeRightStart, nodeRightLength)
+			nodeRight := PT.createNode(n.typ, nodeRightStart, nodeRightLength)
 			PT.nodes.InsertBefore(nodeRight, e)
 			n.typ = Remove
 			break
 		} else if totLen > offset && endLen > totLen && nodeStartPoint < offset {
 			// this is only node left
-			nodeLeft := PT.CreateNode(n.typ, n.start, distanceFromLeftToOffset)
+			nodeLeft := PT.createNode(n.typ, n.start, distanceFromLeftToOffset)
 			// only insert the left node if it has a length
 			if nodeLeft.length != 0 {
 				PT.nodes.InsertBefore(nodeLeft, e)
@@ -205,13 +205,13 @@ func (PT *PieceTable) DeleteStringAt(offset, length uint) error {
 			nodeRightStart := (n.length - (totLen - endLen)) + n.start
 			nodeRightLength := n.length - (nodeRightStart - n.start)
 
-			nodeRight := PT.CreateNode(n.typ, nodeRightStart, nodeRightLength)
+			nodeRight := PT.createNode(n.typ, nodeRightStart, nodeRightLength)
 			PT.nodes.InsertBefore(nodeRight, e)
 			n.typ = Remove
 			break
 		} else if totLen == offset && length == 1 {
 			nodeLeftLength := totLen - 1
-			nodeLeft := PT.CreateNode(n.typ, n.start, nodeLeftLength)
+			nodeLeft := PT.createNode(n.typ, n.start, nodeLeftLength)
 			PT.nodes.InsertBefore(nodeLeft, e)
 			n.typ = Remove
 			break
