@@ -119,10 +119,10 @@ func (PT *PieceTable) cleanupRemoveNodes() {
 // offset is the char the delete starts
 // length is the length of the delete. to delete only 1 char it will be a 0 length
 // EXAMPLE ---------------------------------------------------------------------------
-// DeleteStringAt(start=4,length=4)
+// DeleteStringAt(start=1,length=1)
 //
 // Node: Start=0, Length=10
-// ]<->[ 1,2,3,4,5,6,7,8,9,10]<->[..
+// ]<->[ 1,2,3,1,5,6,7,8,9,10]<->[..
 //
 // NodeLeft: Start=currentNodeStart, length=start-currentNodeStart
 // NodeRight: Start=currentNodeStart+length, length=currentNodeLength-length
@@ -344,7 +344,8 @@ func (PT *PieceTable) InsertStringAt(offset uint, data string) bool {
 
 //GetLineStr returns the string representation of a line ending with '\n'
 // lineNo is the line number 1... that GetLineStr will return
-func (PT *PieceTable) GetLineStr(lineNo uint) string {
+// TODO: This code needs to be refactored and also made more efficient
+func (PT *PieceTable) GetLineStr(lineNo uint) (string, error) {
 	currentLine := uint(1)
 	totLines := uint(0)
 
@@ -387,33 +388,28 @@ func (PT *PieceTable) GetLineStr(lineNo uint) string {
 			end := n.start + n.length
 			for i := range n.lineOffsets {
 				currentLine = prevLines + uint(i) + 1
-				end = start + n.lineOffsets[i]
+				end = n.start + n.lineOffsets[i]
 				if i > 0 {
 					start = n.start + n.lineOffsets[i-1]
 				}
-				// println("start = ", start)
-				// println("end = ", end)
-				// println("currentLine = ", currentLine)
+
 				if lineNo == currentLine {
-					// figure out what to do here
-					// startpoint =
-					// endpoint =
 					data := PT.buffer[n.typ][start : end+1]
 					buf = append(buf, data...)
-					return string(buf)
+					return string(buf), nil
 				}
 				buf = nil
 				if i == len(n.lineOffsets)-1 {
 					data := PT.buffer[n.typ][n.lineOffsets[i]:]
 					buf = append(buf, data...)
-					return string(buf)
+					return string(buf), nil
 				}
 
 			}
 		}
 
 	}
-	return ""
+	return "", fmt.Errorf("Unable to find lineNo")
 }
 
 // ------------------------------------------------------------------------
@@ -479,7 +475,8 @@ func main() {
 	// data := openAndReadFile("unicode.txt")
 
 	data := []rune(`Thequi Σc
-	kasdfroasfafswnasdf
+	kasdfroas
+	fafswnasdf
 	das`)
 	// println("len(input)=", len(input))
 	pt := NewPT(data)
@@ -487,7 +484,7 @@ func main() {
 	// pt.InsertStringAt(10, "CCC")
 	// need to get this working
 	// pt.DeleteStringAt(0, 12)
-	println(pt.GetLineStr(1))
+	println(pt.GetLineStr(6))
 	// need to get this working
 	// pt.DeleteStringAt(3, 10)
 	// pt.DeleteStringAt(3, 8)
