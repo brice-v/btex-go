@@ -356,7 +356,7 @@ func (PT *PieceTable) GetLineStr(lineNo uint) (string, error) {
 	for e := PT.nodes.Front(); e != nil; e = e.Next() {
 		n, ok := e.Value.(*Node)
 		if !ok {
-			return ""
+			return "", fmt.Errorf("Failed to read node")
 		}
 		if n.typ == Sentinel {
 			continue
@@ -480,11 +480,15 @@ func main() {
 	das`)
 	// println("len(input)=", len(input))
 	pt := NewPT(data)
-	// pt.InsertStringAt(6, "AAABBB")
-	// pt.InsertStringAt(10, "CCC")
+	pt.InsertStringAt(6, "AAABBB")
+	pt.InsertStringAt(10, "CCC")
 	// need to get this working
-	// pt.DeleteStringAt(0, 12)
-	println(pt.GetLineStr(6))
+	pt.DeleteStringAt(0, 12)
+	result, err := pt.GetLineStr(2)
+	if err != nil {
+		println(err)
+	}
+	println(result)
 	// need to get this working
 	// pt.DeleteStringAt(3, 10)
 	// pt.DeleteStringAt(3, 8)
@@ -495,6 +499,6 @@ func main() {
 		n := e.Value.(*Node)
 		fmt.Println(n)
 	}
-	// cat(pt)
+	cat(pt)
 
 }
