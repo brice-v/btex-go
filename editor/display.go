@@ -22,7 +22,7 @@ func (E *Editor) DrawEditorChars(xPos int, yPos int, leftChar rune) {
 	w, h := E.s.Size()
 	for rowindx := 0; rowindx < E.numrows && rowindx < h; rowindx++ {
 		for charindx := uint(0); charindx < E.rows[rowindx].length && charindx < uint(w); charindx++ {
-			E.s.SetContent(int(charindx+2), rowindx, E.rows[rowindx].chars[charindx], nil, tcell.StyleDefault)
+			E.s.SetContent(int(charindx+2), rowindx, rune(E.rows[rowindx].chars[charindx]), nil, tcell.StyleDefault)
 		}
 		// lineNo := fmt.Sprintf("%d", rowindx)
 		E.s.SetContent(0, rowindx, LEFTSIDE_CHAR, nil, tcell.StyleDefault)

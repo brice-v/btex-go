@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"btex-go/peace"
 	"btex-go/screen"
 
 	"github.com/gdamore/tcell"
@@ -22,7 +23,7 @@ const (
 
 type editorRow struct {
 	length uint
-	chars  []rune
+	chars  string
 }
 
 type Editor struct {
@@ -31,6 +32,7 @@ type Editor struct {
 
 	displayWelcome bool
 
+	pt      peace.PieceTable
 	rows    []editorRow
 	numrows int
 }
@@ -139,25 +141,22 @@ func (E *Editor) DrawRows() {
 // FILE / IO
 //
 
-func getRows(data []byte) []editorRow {
-	ers := []editorRow{}
-	buf := []byte{}
-
-	length := uint(0)
-	indx := 0
-	for _, char := range data {
-		buf = append(buf, char)
-		if char == '\n' {
-			er := editorRow{length: length, chars: []rune(string(buf))}
-			ers = append(ers, er)
-			//save the newline and the byte slices lenth here
-			buf = []byte{}
-			length = 0
-			indx++
+func (E *Editor) getRows(data []byte) []editorRow {
+	erows := make([]editorRow, 10)
+	E.pt = *peace.NewPT([]rune(string(data)))
+	for i := uint(1); ; i++ {
+		erowLen := E.pt.Length()
+		erowchars, err := E.pt.GetLineStr(i)
+		if err != nil {
+			return erows
 		}
-		length++
+		thisRow := editorRow{
+			length: erowLen,
+			chars:  erowchars,
+		}
+		erows = append(erows, thisRow)
 	}
-	return ers
+
 }
 
 //OpenFile will open the file and set the buffers accordingly
@@ -167,7 +166,7 @@ func (E *Editor) OpenFile(f string) {
 		//TODO Better handle this failure
 		return
 	}
-	E.rows = getRows(data)
+	E.rows = E.getRows(data)
 	// fmt.Println(E.rows)
 	// os.Exit(0)
 
