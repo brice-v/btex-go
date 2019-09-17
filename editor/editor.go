@@ -1,7 +1,6 @@
 package editor
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -124,17 +123,20 @@ func (E *Editor) RefreshScreen() {
 // DrawRows draws all the rows onto the screen from the E.row.chars
 // this is going to change soon
 func (E *Editor) DrawRows() {
-	w, h := E.s.Size()
-	for i := 0; i < h; i++ {
-		E.s.SetContent(0, i, '~', nil, tcell.StyleDefault)
-	}
-	// Draw Welcome Screen
-	if E.displayWelcome && len(E.rows) < 1 {
-		textToDraw := fmt.Sprintf("btex editor -- version %s", BTEX_VERSION)
-		DrawString(E.s, w/3, h/4, textToDraw)
-		DrawString(E.s, (w/3)-1, (h/4)+1, "Press Ctrl+C or Ctrl+Q to Quit")
-	}
+	// w, h := E.s.Size()
+	// for i := 0; i < h; i++ {
+	// 	E.s.SetContent(0, i, '~', nil, tcell.StyleDefault)
+	// }
 
+	// // Draw Welcome Screen
+	// if E.displayWelcome && len(E.rows) < 1 {
+	// 	textToDraw := fmt.Sprintf("btex editor -- version %s", BTEX_VERSION)
+	// 	DrawString(E.s, w/3, h/4, textToDraw)
+	// 	DrawString(E.s, (w/3)-1, (h/4)+1, "Press Ctrl+C or Ctrl+Q to Quit")
+	// }
+	for i, erow := range E.rows {
+		puts(E.s, tcell.StyleDefault, 1, i, string(erow.chars))
+	}
 }
 
 //
