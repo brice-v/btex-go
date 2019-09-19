@@ -15,7 +15,7 @@ const (
 	TAB_SIZE = 4
 )
 
-// drawString sets the content at the starting location given by x and y
+// DrawString sets the content at the starting location given by x and y
 func DrawString(s tcell.Screen, x int, y int, stringToDraw string) {
 	bs := []rune(stringToDraw)
 	for i, v := range bs {

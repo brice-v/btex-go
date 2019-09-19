@@ -13,19 +13,19 @@ import (
 )
 
 const (
-	BTEX_VERSION = "0.0.1"
-	NEWLINE_CHAR = '\n'
+	//BTEX_VERSION is the current version of the text editor
+	BTEX_VERSION = "0.0.2"
+	// TODO: Possibly remove
+	// NEWLINE_CHAR = '\n'
 )
 
 //
 // EDITOR FUNCTIONS
 //
 
-type editorRow struct {
-	length uint
-	chars  string
-}
-
+//Editor holds all the information related to the editor
+// TODO: export fields and make this a more suitable
+// embeddable project
 type Editor struct {
 	s   tcell.Screen
 	cur Cursor
