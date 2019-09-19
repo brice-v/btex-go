@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -31,8 +32,7 @@ type Editor struct {
 
 	displayWelcome bool
 
-	pt      peace.PieceTable
-	rows    []editorRow
+	pt      *peace.PieceTable
 	numrows int
 }
 
@@ -123,43 +123,33 @@ func (E *Editor) RefreshScreen() {
 // DrawRows draws all the rows onto the screen from the E.row.chars
 // this is going to change soon
 func (E *Editor) DrawRows() {
-	// w, h := E.s.Size()
-	// for i := 0; i < h; i++ {
-	// 	E.s.SetContent(0, i, '~', nil, tcell.StyleDefault)
-	// }
+	style := tcell.StyleDefault
+	w, h := E.s.Size()
+	numLines := E.pt.Length()
+	for i := 0; i < h; i++ {
+		E.s.SetContent(0, i, '~', nil, style)
+		if numLines != 0 {
+			line, err := E.pt.GetLineStr(uint(i + 1))
+			if err != nil {
+				continue
+			}
+			puts(E.s, style, 1, i, line)
+		}
 
-	// // Draw Welcome Screen
-	// if E.displayWelcome && len(E.rows) < 1 {
-	// 	textToDraw := fmt.Sprintf("btex editor -- version %s", BTEX_VERSION)
-	// 	DrawString(E.s, w/3, h/4, textToDraw)
-	// 	DrawString(E.s, (w/3)-1, (h/4)+1, "Press Ctrl+C or Ctrl+Q to Quit")
-	// }
-	for i, erow := range E.rows {
-		puts(E.s, tcell.StyleDefault, 1, i, string(erow.chars))
+	}
+	E.s.Show()
+
+	// Draw Welcome Screen
+	if E.displayWelcome && numLines < 1 {
+		textToDraw := fmt.Sprintf("btex editor -- version %s", BTEX_VERSION)
+		DrawString(E.s, w/3, h/4, textToDraw)
+		DrawString(E.s, (w/3)-1, (h/4)+1, "Press Ctrl+C or Ctrl+Q to Quit")
 	}
 }
 
 //
 // FILE / IO
 //
-
-func (E *Editor) getRows(data []byte) []editorRow {
-	erows := make([]editorRow, 10)
-	E.pt = *peace.NewPT([]rune(string(data)))
-	for i := uint(1); ; i++ {
-		erowLen := E.pt.Length()
-		erowchars, err := E.pt.GetLineStr(i)
-		if err != nil {
-			return erows
-		}
-		thisRow := editorRow{
-			length: erowLen,
-			chars:  erowchars,
-		}
-		erows = append(erows, thisRow)
-	}
-
-}
 
 //OpenFile will open the file and set the buffers accordingly
 func (E *Editor) OpenFile(f string) {
@@ -168,9 +158,8 @@ func (E *Editor) OpenFile(f string) {
 		//TODO Better handle this failure
 		return
 	}
-	E.rows = E.getRows(data)
-	// fmt.Println(E.rows)
-	// os.Exit(0)
+
+	E.pt = peace.NewPT(([]rune(string(data))))
 
 }
 
@@ -180,11 +169,13 @@ func NewEditor() *Editor {
 	E.cur.x, E.cur.y = 1, 0
 	E.s = screen.InitScreen()
 
+	E.pt = peace.NewPT(nil)
 	// for now only opening file when exactly the 1st argument on the command line
 	if len(os.Args) == 2 {
 		if _, err := os.Stat(os.Args[1]); err == nil {
 			E.OpenFile(os.Args[1])
 		} else if os.IsNotExist(err) {
+
 			// // if it doesnt exist go ahead and create it
 			// newFile, err := os.Create(os.Args[1])
 			// if err != nil {
@@ -197,8 +188,6 @@ func NewEditor() *Editor {
 			log.Fatal(err)
 		}
 	}
-	E.numrows = len(E.rows)
-
 	E.displayWelcome = true
 	return E
 }

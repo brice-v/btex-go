@@ -18,20 +18,6 @@ func DrawString(s tcell.Screen, x int, y int, stringToDraw string) {
 	s.Show()
 }
 
-func (E *Editor) DrawEditorChars(xPos int, yPos int, leftChar rune) {
-	w, h := E.s.Size()
-	for rowindx := 0; rowindx < E.numrows && rowindx < h; rowindx++ {
-		for charindx := uint(0); charindx < E.rows[rowindx].length && charindx < uint(w); charindx++ {
-			E.s.SetContent(int(charindx+2), rowindx, rune(E.rows[rowindx].chars[charindx]), nil, tcell.StyleDefault)
-		}
-		// lineNo := fmt.Sprintf("%d", rowindx)
-		E.s.SetContent(0, rowindx, LEFTSIDE_CHAR, nil, tcell.StyleDefault)
-		E.s.SetContent(1, rowindx, ' ', nil, tcell.StyleDefault)
-	}
-
-	E.s.Show()
-}
-
 // puts paints a unicode string on to the display if it is supported
 // This function is from: https://github.com/gdamore/tcell/blob/master/_demos/unicode.go
 func puts(s tcell.Screen, style tcell.Style, x, y int, str string) {
