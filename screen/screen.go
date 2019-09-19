@@ -10,7 +10,7 @@ import (
 // InitScreen initializes and returns the screen object
 // style is set to bg='black' and fg='white'
 // Unicode is registered here
-func InitScreen() tcell.Screen {
+func InitScreen(style tcell.Style) tcell.Screen {
 	//unicode support
 	encoding.Register()
 	s, e := tcell.NewScreen()
@@ -22,9 +22,7 @@ func InitScreen() tcell.Screen {
 		log.Fatal(e)
 	}
 
-	s.SetStyle(tcell.StyleDefault.
-		Foreground(tcell.ColorWhite).
-		Background(tcell.ColorBlack))
+	s.SetStyle(style)
 
 	return s
 }

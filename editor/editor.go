@@ -95,10 +95,10 @@ func (E *Editor) ProcessKey() rune {
 			E.deleteUnder()
 		case tcell.KeyEnter:
 			// TODO come back to this because i dont know what this will need to do
-			E.drawRune(NEWLINE_CHAR)
-			E.cur.Move(DOWN)
-			E.cur.x = 1
-			E.s.Show()
+			// E.drawRune(NEWLINE_CHAR)
+			// E.cur.Move(DOWN)
+			// E.cur.x = 1
+			// E.s.Show()
 		default:
 			k = ev.Rune()
 			E.drawRune(k)
@@ -123,7 +123,9 @@ func (E *Editor) RefreshScreen() {
 // DrawRows draws all the rows onto the screen from the E.row.chars
 // this is going to change soon
 func (E *Editor) DrawRows() {
-	style := tcell.StyleDefault
+	style := tcell.StyleDefault.
+		Foreground(tcell.ColorWhite).
+		Background(tcell.ColorBlack)
 	w, h := E.s.Size()
 	numLines := E.pt.Length()
 	for i := 0; i < h; i++ {
@@ -133,7 +135,7 @@ func (E *Editor) DrawRows() {
 			if err != nil {
 				continue
 			}
-			puts(E.s, style, 1, i, line)
+			E.Puts(style, 1, i, line)
 		}
 
 	}
@@ -167,7 +169,12 @@ func (E *Editor) OpenFile(f string) {
 func NewEditor() *Editor {
 	E := new(Editor)
 	E.cur.x, E.cur.y = 1, 0
-	E.s = screen.InitScreen()
+
+	style := tcell.StyleDefault.
+		Foreground(tcell.ColorWhite).
+		Background(tcell.ColorBlack)
+
+	E.s = screen.InitScreen(style)
 
 	E.pt = peace.NewPT(nil)
 	// for now only opening file when exactly the 1st argument on the command line
