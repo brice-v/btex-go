@@ -1,7 +1,6 @@
 package editor
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -32,8 +31,8 @@ type Editor struct {
 
 	displayWelcome bool
 
-	pt      *peace.PieceTable
-	numrows int
+	pt        *peace.PieceTable
+	rowoffset int
 }
 
 func (E *Editor) displayCursor() {
@@ -50,6 +49,7 @@ func (E *Editor) displayCursor() {
 	}
 	if E.cur.y > h {
 		E.cur.y = h - 1
+		E.rowoffset++
 	}
 	E.s.ShowCursor(E.cur.x, E.cur.y)
 }
@@ -120,35 +120,6 @@ func (E *Editor) RefreshScreen() {
 	E.s.Show()
 }
 
-// DrawRows draws all the rows onto the screen from the E.row.chars
-// this is going to change soon
-func (E *Editor) DrawRows() {
-	style := tcell.StyleDefault.
-		Foreground(tcell.ColorWhite).
-		Background(tcell.ColorBlack)
-	w, h := E.s.Size()
-	numLines := E.pt.Length()
-	for i := 0; i < h; i++ {
-		E.s.SetContent(0, i, '~', nil, style)
-		if numLines != 0 {
-			line, err := E.pt.GetLineStr(uint(i + 1))
-			if err != nil {
-				continue
-			}
-			E.Puts(style, 1, i, line)
-		}
-
-	}
-	E.s.Show()
-
-	// Draw Welcome Screen
-	if E.displayWelcome && numLines < 1 {
-		textToDraw := fmt.Sprintf("btex editor -- version %s", BTEX_VERSION)
-		DrawString(E.s, w/3, h/4, textToDraw)
-		DrawString(E.s, (w/3)-1, (h/4)+1, "Press Ctrl+C or Ctrl+Q to Quit")
-	}
-}
-
 //
 // FILE / IO
 //
@@ -177,6 +148,9 @@ func NewEditor() *Editor {
 	E.s = screen.InitScreen(style)
 
 	E.pt = peace.NewPT(nil)
+
+	E.rowoffset = 0
+
 	// for now only opening file when exactly the 1st argument on the command line
 	if len(os.Args) == 2 {
 		if _, err := os.Stat(os.Args[1]); err == nil {

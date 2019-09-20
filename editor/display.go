@@ -1,6 +1,8 @@
 package editor
 
 import (
+	"fmt"
+
 	"github.com/gdamore/tcell"
 	"github.com/mattn/go-runewidth"
 )
@@ -15,13 +17,33 @@ const (
 	TAB_SIZE = 4
 )
 
-// DrawString sets the content at the starting location given by x and y
-func DrawString(s tcell.Screen, x int, y int, stringToDraw string) {
-	bs := []rune(stringToDraw)
-	for i, v := range bs {
-		s.SetContent(x+i, y, v, nil, tcell.StyleDefault)
+// DrawRows draws all the rows onto the screen from the E.row.chars
+// this is going to change soon
+func (E *Editor) DrawRows() {
+	style := tcell.StyleDefault.
+		Foreground(tcell.ColorWhite).
+		Background(tcell.ColorBlack)
+
+	w, h := E.s.Size()
+	numLines := E.pt.Length()
+	for i := 0; i < h; i++ {
+		E.s.SetContent(0, i, '~', nil, style)
+		if numLines != 0 {
+			line, err := E.pt.GetLineStr(uint(i + 1 + E.rowoffset))
+			if err != nil {
+				continue
+			}
+			E.Puts(style, 1, i, line)
+		}
+
 	}
-	s.Show()
+
+	// Draw Welcome Screen
+	if E.displayWelcome && numLines < 1 {
+		textToDraw := fmt.Sprintf("btex editor -- version %s", BTEX_VERSION)
+		E.Puts(style, w/3, h/4, textToDraw)
+		E.Puts(style, (w/3)-1, (h/4)+1, "Press Ctrl+C or Ctrl+Q to Quit")
+	}
 }
 
 // Puts paints a unicode string on to the display if it is supported
