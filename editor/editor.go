@@ -36,6 +36,7 @@ type Editor struct {
 }
 
 func (E *Editor) displayCursor() {
+	// TODO: restrict how the cursor can be displayed in an editing mode
 	w, h := E.s.Size()
 
 	if E.cur.x < 1 {
@@ -43,6 +44,7 @@ func (E *Editor) displayCursor() {
 	}
 	if E.cur.y < 0 {
 		E.cur.y = 0
+		E.rowoffset--
 	}
 	if E.cur.x > w {
 		E.cur.x = w - 1
@@ -149,7 +151,7 @@ func NewEditor() *Editor {
 
 	E.pt = peace.NewPT(nil)
 
-	E.rowoffset = 0
+	E.rowoffset = 1
 
 	// for now only opening file when exactly the 1st argument on the command line
 	if len(os.Args) == 2 {

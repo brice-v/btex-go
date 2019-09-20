@@ -25,21 +25,27 @@ func (E *Editor) DrawRows() {
 		Background(tcell.ColorBlack)
 
 	w, h := E.s.Size()
-	numLines := E.pt.Length()
+	totLen := E.pt.Length()
+	// println("E.rowoffset", E.rowoffset)
 	for i := 0; i < h; i++ {
 		E.s.SetContent(0, i, '~', nil, style)
-		if numLines != 0 {
-			line, err := E.pt.GetLineStr(uint(i + 1 + E.rowoffset))
+		if totLen != 0 {
+			line, err := E.pt.GetLineStr(uint(i + E.rowoffset))
 			if err != nil {
 				continue
 			}
+			if E.rowoffset > 1 {
+				E.s.Clear()
+				E.Puts(style, 1, i+E.rowoffset, line)
+			}
 			E.Puts(style, 1, i, line)
+
 		}
 
 	}
 
 	// Draw Welcome Screen
-	if E.displayWelcome && numLines < 1 {
+	if E.displayWelcome && totLen < 1 {
 		textToDraw := fmt.Sprintf("btex editor -- version %s", BTEX_VERSION)
 		E.Puts(style, w/3, h/4, textToDraw)
 		E.Puts(style, (w/3)-1, (h/4)+1, "Press Ctrl+C or Ctrl+Q to Quit")
