@@ -121,7 +121,6 @@ func (E *Editor) RefreshScreen() {
 	E.s.HideCursor()
 	E.s.Clear()
 	E.DrawRows()
-	E.s.Sync()
 	E.displayCursor()
 	E.s.Show()
 }

@@ -38,6 +38,9 @@ func (E *Editor) DrawRows() {
 		}
 
 	}
+	if E.rowoffset > 1 {
+		E.s.Sync()
+	}
 
 	// Draw Welcome Screen
 	if E.displayWelcome && totLen < 1 {
