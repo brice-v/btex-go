@@ -101,6 +101,9 @@ func (E *Editor) ProcessKey() rune {
 			// E.cur.Move(DOWN)
 			// E.cur.x = 1
 			// E.s.Show()
+		case tcell.KeyCtrlL:
+			E.s.Clear()
+			E.s.Show()
 		default:
 			k = ev.Rune()
 			E.drawRune(k)
@@ -118,6 +121,7 @@ func (E *Editor) RefreshScreen() {
 	E.s.HideCursor()
 	E.s.Clear()
 	E.DrawRows()
+	E.s.Sync()
 	E.displayCursor()
 	E.s.Show()
 }
@@ -151,7 +155,7 @@ func NewEditor() *Editor {
 
 	E.pt = peace.NewPT(nil)
 
-	E.rowoffset = 1
+	E.rowoffset = 2
 
 	// for now only opening file when exactly the 1st argument on the command line
 	if len(os.Args) == 2 {
