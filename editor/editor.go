@@ -51,10 +51,10 @@ func (E *Editor) displayCursor() {
 		E.cur.y = 0
 		E.rowoffset--
 	}
-	if E.cur.x > w-CURSOR_PADDING {
+	if E.cur.x >= w-CURSOR_PADDING {
 		E.cur.x = w - 1
 	}
-	if E.cur.y > h-CURSOR_PADDING {
+	if E.cur.y >= h-CURSOR_PADDING {
 		E.cur.y = h - 1 - CURSOR_PADDING
 		E.rowoffset++
 	}
@@ -149,7 +149,7 @@ func (E *Editor) OpenFile(f string) {
 //NewEditor returns the editor object
 func NewEditor() *Editor {
 	E := new(Editor)
-	E.cur.x, E.cur.y = 1, 1
+	E.cur.x, E.cur.y = 1, 0
 
 	style := tcell.StyleDefault.
 		Foreground(tcell.ColorWhite).

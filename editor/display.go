@@ -26,14 +26,17 @@ func (E *Editor) DrawRows() {
 
 	w, h := E.s.Size()
 	totLen := E.pt.Length()
-	for i := 0; i < h; i++ {
+	for i := 0; i <= h; i++ {
 		E.Puts(style, 0, i, "~")
 		if totLen != 0 {
-			line, err := E.pt.GetLineStr(uint(i + E.rowoffset))
-			if err != nil {
-				continue
+			offset := 0
+			if E.rowoffset > 1 {
+				offset = E.rowoffset
 			}
-			E.Puts(style, 1, i, line)
+			line, err := E.pt.GetLineStr(uint(i + offset))
+			if err == nil {
+				E.Puts(style, 1, i, line)
+			}
 
 		}
 
