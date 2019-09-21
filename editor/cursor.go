@@ -29,10 +29,16 @@ type Cursor struct {
 func (c *Cursor) Move(d direction) {
 	switch d {
 	case UP:
+		if c.y == 0 {
+			return
+		}
 		c.y--
 	case DOWN:
 		c.y++
 	case LEFT:
+		if c.x == 0 {
+			return
+		}
 		c.x--
 	case RIGHT:
 		c.x++
