@@ -14,8 +14,9 @@ import (
 const (
 	//BTEX_VERSION is the current version of the text editor
 	BTEX_VERSION = "0.0.2"
-	// TODO: Possibly remove
-	// NEWLINE_CHAR = '\n'
+
+	// CURSOR_PADDING is the point at which the buffer will start scrolling
+	CURSOR_PADDING = 4
 )
 
 //
@@ -31,7 +32,11 @@ type Editor struct {
 
 	displayWelcome bool
 
-	pt        *peace.PieceTable
+	pt *peace.PieceTable
+
+	rows int
+	cols int
+
 	rowoffset int
 }
 
@@ -46,11 +51,11 @@ func (E *Editor) displayCursor() {
 		E.cur.y = 0
 		E.rowoffset--
 	}
-	if E.cur.x > w {
+	if E.cur.x > w-CURSOR_PADDING {
 		E.cur.x = w - 1
 	}
-	if E.cur.y > h {
-		E.cur.y = h - 1
+	if E.cur.y > h-CURSOR_PADDING {
+		E.cur.y = h - 1 - CURSOR_PADDING
 		E.rowoffset++
 	}
 	E.s.ShowCursor(E.cur.x, E.cur.y)
@@ -83,12 +88,15 @@ func (E *Editor) ProcessKey() rune {
 		case tcell.KeyLeft:
 			E.cur.Move(LEFT)
 		case tcell.KeyRight:
-			E.cur.Move(RIGHT)
+			if E.cur.x != E.cols-1 {
+				E.cur.Move(RIGHT)
+			}
 		case tcell.KeyDown:
 			// to handle directional issues with text i might just allow the user to Move anywhere and when they
 			// start typing bring them back to the bottom of the text or something like that
-			// still need to look in using ropes for string storage
-			E.cur.Move(DOWN)
+			if E.cur.y < E.rows {
+				E.cur.Move(DOWN)
+			}
 		case tcell.KeyBackspace2, tcell.KeyBackspace:
 			E.cur.Move(LEFT)
 			E.deleteUnder()
@@ -101,9 +109,6 @@ func (E *Editor) ProcessKey() rune {
 			// E.cur.Move(DOWN)
 			// E.cur.x = 1
 			// E.s.Show()
-		case tcell.KeyCtrlL:
-			E.s.Clear()
-			E.s.Show()
 		default:
 			k = ev.Rune()
 			E.drawRune(k)
@@ -144,7 +149,7 @@ func (E *Editor) OpenFile(f string) {
 //NewEditor returns the editor object
 func NewEditor() *Editor {
 	E := new(Editor)
-	E.cur.x, E.cur.y = 1, 0
+	E.cur.x, E.cur.y = 1, 1
 
 	style := tcell.StyleDefault.
 		Foreground(tcell.ColorWhite).
@@ -154,7 +159,9 @@ func NewEditor() *Editor {
 
 	E.pt = peace.NewPT(nil)
 
-	E.rowoffset = 2
+	E.rowoffset = 1
+
+	E.cols, E.rows = E.s.Size()
 
 	// for now only opening file when exactly the 1st argument on the command line
 	if len(os.Args) == 2 {
